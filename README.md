@@ -24,7 +24,7 @@ git clone https://github.com/Youweichen9155/Mouse-Limb-Movement-Behaviour-Analys
 
 ## Preparing Mice for Movement Video
 
-1. The 4 joints to be tested were marked on the mice with five different colours.
+1. The 4 joints to be tested were marked on the mice with different colours.
 
 2. Before shooting the video, use a ruler to record the length and width of the corresponding cm in the video frame.
 
