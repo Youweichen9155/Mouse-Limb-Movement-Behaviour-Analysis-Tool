@@ -17,7 +17,7 @@ Key Laboratory of Spine and Spinal Cord Injury Repair and Regeneration of Minist
 ## Installation
 
 1. Clone the repository:
-git clone git clone https://github.com/Youweichen9155/Mouse-Limb-Movement-Behaviour-Analysis-Tool
+git clone https://github.com/Youweichen9155/Mouse-Limb-Movement-Behaviour-Analysis-Tool
 
 2. Install the required packages
 
@@ -32,7 +32,9 @@ git clone git clone https://github.com/Youweichen9155/Mouse-Limb-Movement-Behavi
 
 4. Shoot 240 fps slow motion video. Note that the video exported from the mobile phone is at 30 fps, if the mice are moving on a running belt, the difference in frame rate has been converted in the programme, just enter the speed of the running belt.
 
-##Usage
+## Usage
+
+1. cd Mouse-Limb-Movement-Behaviour-Analysis-Tool
 
 1. python analyze_video.py
 
