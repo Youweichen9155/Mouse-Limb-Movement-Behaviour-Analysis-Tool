@@ -1,13 +1,16 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.widgets import SpanSelector
 import pandas as pd
 
-def analyze_video(video_path, width_cm, height_cm, interval):
+def analyze_video(video_path, width_cm, height_cm, interval, display_joints):
+
     def find_contours(mask):
         contours_data = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         contours = contours_data[0] if len(contours_data) == 2 else contours_data[1]
         return contours
+    
         #从视频第一帧读取关节颜色值
     def get_hsv_from_frames(cap):
         hsv_colors = {joint: [] for joint in ["hip", "knee", "ankle", "foot"]}
@@ -29,8 +32,8 @@ def analyze_video(video_path, width_cm, height_cm, interval):
             hsv = hsv_frame[y, x]
             hsv_colors[joint] = hsv
             plt.close()
-        
         return hsv_colors
+    
         #计算跑步带速度平移
     def adjust_positions(positions, speed, fps):
         adjusted_positions = []
@@ -39,6 +42,37 @@ def analyze_video(video_path, width_cm, height_cm, interval):
             adjusted_x = x - i * displacement_per_frame
             adjusted_positions.append((adjusted_x, y))
         return np.array(adjusted_positions)
+    
+    def smooth_positions(positions, window_size=10):
+        smoothed_positions = np.convolve(positions, np.ones(window_size)/window_size, mode='valid')
+        return smoothed_positions
+
+    def calculate_velocity(positions):
+        velocity = np.diff(positions, axis=0)
+        return velocity
+
+    # 用于确认选择的函数
+    def confirm_selection(event):
+        if event.key == 'enter':
+        # 在控制台打印选择的区域
+           print("Selected regions:")
+           for i, region in enumerate(selected_regions):
+               print(f"Region {i+1}: ({region[0]}, {region[1]})")
+
+    # 定义选区时的回调函数
+    def onselect(vmin, vmax):
+        selected_regions.append((vmin, vmax))
+        print(f"Selected region: ({vmin}, {vmax})")
+        # 更新图形，将选中区域标记出来
+        for region in selected_regions:
+          ax1.axvspan(region[0], region[1], color='red', alpha=0.3)
+        fig.canvas.draw_idle()
+    
+    def update_phases_based_on_selection(phases, selected_regions):
+        for vmin, vmax in selected_regions:
+           for i in range(int(vmin), int(vmax)):
+              phases[i] = 'Swing'
+        return phases
 
     # 加载视频
     cap = cv2.VideoCapture(video_path)
@@ -237,45 +271,78 @@ def analyze_video(video_path, width_cm, height_cm, interval):
     average_stride_length = np.mean(strides)
     print(f"Average stride length: {average_stride_length:.2f} cm")
 
+
+    smoothed_foot_positions = smooth_positions(foot_positions[:, 1])
+
+    # 计算速度和加速度
+    velocity = np.abs(calculate_velocity(smoothed_foot_positions))
+
+    # 补齐长度以匹配原始数据长度
+    velocity = np.concatenate(([0], velocity))
+
+    # 初始所有帧都定义为支撑相
+    phases = ['Stance'] * len(smoothed_foot_positions)
+
+     # 创建图形和子图
+    fig, ax1 = plt.subplots(figsize=(10, 10))
+    ax1.plot(velocity, label='Velocity', color='blue')
+    ax1.set_title('Velocity over Time')
+    ax1.set_xlabel('Frame')
+    ax1.set_ylabel('Velocity (cm/frame)')
+    ax1.legend()
+    ax1.grid(True)
+    # 存储选择的区域
+    selected_regions = []
+   
+    # 添加SpanSelector
+    span = SpanSelector(ax1, onselect, 'horizontal', useblit=True,rectprops=dict(alpha=0.5, facecolor='red'))
+
+    # 添加按键事件处理程序
+    fig.canvas.mpl_connect('key_press_event', confirm_selection)
+    plt.show()
+
+    # 更新相位
+    phases = update_phases_based_on_selection(phases, selected_regions)
+
     # 绘制关节运动图
-    plt.figure(figsize=(12, 6))
-
-    # 设置颜色渐变
-    colors = plt.cm.viridis(np.linspace(0, 1, len(hip_positions)))
-
+    plt.figure(figsize=(10, 5))
     # 绘制每个时间点的关节连线
-    for i in range(0, len(hip_positions), interval):
-        plt.plot(hip_positions[i, 0], hip_positions[i, 1], 'o', color='green')
-        plt.plot(knee_positions[i, 0], knee_positions[i, 1], 'o', color='blue')
-        plt.plot(ankle_positions[i, 0], ankle_positions[i, 1], 'o', color='yellow')
-        plt.plot(foot_positions[i, 0], foot_positions[i, 1], 'o', color='red')
 
-        plt.plot([hip_positions[i, 0], knee_positions[i, 0]], 
-                [hip_positions[i, 1], knee_positions[i, 1]], 
-                color=colors[i])
-        plt.plot([knee_positions[i, 0], ankle_positions[i, 0]], 
-                [knee_positions[i, 1], ankle_positions[i, 1]], 
-                color=colors[i])
-        plt.plot([ankle_positions[i, 0], foot_positions[i, 0]], 
-                [ankle_positions[i, 1], foot_positions[i, 1]], 
-                color=colors[i])
+    step = interval if interval > 0 else 1
+    for i in range(0, len(smoothed_foot_positions), step):
+        if 'hip' in display_joints:
+            plt.plot(hip_positions[i, 0], hip_positions[i, 1])
+        if 'knee' in display_joints:
+            plt.plot(knee_positions[i, 0], knee_positions[i, 1])
+        if 'ankle' in display_joints:
+            plt.plot(ankle_positions[i, 0], ankle_positions[i, 1])
+        if 'foot' in display_joints:
+            plt.plot(foot_positions[i, 0], foot_positions[i, 1])
 
-    # 添加颜色渐变标尺
-    sm = plt.cm.ScalarMappable(cmap='viridis', norm=plt.Normalize(vmin=0, vmax=len(hip_positions)))
-    sm.set_array([])
-    cbar = plt.colorbar(sm)
-    cbar.set_label('Time (frames)')
-
+        color = 'black' if phases[i] == 'Stance' else 'grey'
+        if 'hip' in display_joints and 'knee' in display_joints:
+            plt.plot([hip_positions[i, 0], knee_positions[i, 0]], [hip_positions[i, 1], knee_positions[i, 1]], color=color)
+        if 'knee' in display_joints and 'ankle' in display_joints:
+            plt.plot([knee_positions[i, 0], ankle_positions[i, 0]],[knee_positions[i, 1], ankle_positions[i, 1]], color=color)
+        if 'ankle' in display_joints and 'foot' in display_joints:
+            plt.plot([ankle_positions[i, 0], foot_positions[i, 0]], [ankle_positions[i, 1], foot_positions[i, 1]], color=color)
     # 设置图表标签和标题
     plt.xlabel('X Position (cm)')
     plt.ylabel('Y Position (cm)')
     plt.title('Hind Limb Motion of the Mouse')
     plt.grid(True)
+    # Save SVG without axes and grid
+    plt.axis('off')  # Turn off axes
+    plt.grid(False)  # Turn off grid
+
+    # Save SVG file
+    plt.savefig(video_path.replace('.mp4','output.svg'),format='svg')
     plt.show()
 
 if __name__ == "__main__":
-    video_path = input("Enter the path to the video: ")
-    width_cm = float(input("Enter the width of the video in cm: "))
-    height_cm = float(input("Enter the height of the video in cm: "))
-    interval = int(input("Enter interval vaule: "))
-    analyze_video(video_path, width_cm, height_cm, interval)
+    video_path = input("Enter the path to the video:")
+    width_cm = float(input("Enter the width of the video in cm:"))
+    height_cm = float(input("Enter the height of the video in cm:"))
+    interval = int(input("Enter interval vaule(0 for no interval):"))
+    display_joints = input("Please enter the joints to be displayed(hip,knee,ankle,foot) split by: ,").split(',')
+    analyze_video(video_path, width_cm, height_cm, interval,display_joints)

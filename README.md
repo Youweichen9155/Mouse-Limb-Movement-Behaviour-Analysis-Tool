@@ -40,6 +40,12 @@ git clone https://github.com/Youweichen9155/Mouse-Limb-Movement-Behaviour-Analys
 
 2. Input the video path, the actual length and width of the video frame, and the frame rate interval.
 
-3. After loading the video click on the 5 joints in the pop-up window to read the colours of the markers.
+3. After loading the video click on the 4 joints in the pop-up window to read the colours of the markers.
 
 4. The final result will be a video of the original video superimposed on the joint connecting lines, a video containing only the joint connecting lines, a table of the coordinates of each joint, and a graph of the joint's motion trajectory.
+
+## update 2024.7.8
+
+1. Added option to show specific joints, just enter the joint name, need to use‘,’ split joint name.
+
+2. Output the motion velocity curve of the foot, you can select and define the region of the swing phase in the image, the final output image is black for the stance phase and gray for the swing phase.
