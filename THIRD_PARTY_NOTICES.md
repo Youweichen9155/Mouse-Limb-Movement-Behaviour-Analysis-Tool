@@ -20,7 +20,7 @@
 
 NumPy, SciPy, pandas, matplotlib, OpenCV headless, scikit-learn, PySide6 Essentials / Qt, shiboken6 and their dependencies retain their original licenses. Both native packages include dependency licenses, build metadata and complete source.
 
-Qt/PySide6 is dynamically loaded; applicable LGPL/GPL texts are included with its package metadata. Source and rebuilding information: https://code.qt.io/cgit/pyside/pyside-setup.git/ and https://www.qt.io/licensing/open-source-lgpl-obligations .
+Qt/PySide6 is dynamically loaded. LGPL and Qt exception texts are in `LICENSES/Qt`; the GPL text is in the root `LICENSE`. Exact-version upstream source locations are listed in `LICENSES/Qt/SOURCE.txt`. Additional dependency licenses are collected from wheel files. Source and rebuilding information: https://code.qt.io/cgit/pyside/pyside-setup.git/ and https://www.qt.io/licensing/open-source-lgpl-obligations .
 
 The native packages include CPython 3.12; the exact interpreter version is recorded in BUILD_INFO.json. Its license is included in LICENSES/PYTHON.txt. No registry edits or system Python installation are required for the desktop application.
 

@@ -22,10 +22,11 @@ Unconfirmed capture rate, scale and animal identities were not invented.
 
 ## Automated checks
 
-32 tests passed locally on Apple Silicon, covering frame preservation, missing
+33 tests passed locally on Apple Silicon, covering frame preservation, missing
 markers, long gaps, capture/playback timing, suspended exclusions, stationary
 clips, explicit cycle approval, independent engines, upstream ALMA equivalence,
-annotation persistence, animal-separated splits, GUI handoff and video rotation.
+annotation persistence, animal-separated splits, GUI handoff, video rotation and
+Chinese progress output under Western Windows stream encodings.
 
 The 90°/180° fixtures check decoded pixels, dimensions, tracked marker positions,
 annotation images, overlay export and the scoped external DLC reader.

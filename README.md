@@ -51,7 +51,7 @@ This optional setup needs Python 3.12 and internet access. DLC 3.0.2 is supporte
 
 ## Validation and limitations
 
-- 32 automated tests cover analysis, frame preservation, annotation, GUI handoff and 90°/180° orientation. CI builds and smoke-tests native apps.
+- 33 automated tests cover analysis, frame preservation, annotation, GUI handoff and 90°/180° orientation. CI builds and smoke-tests native apps.
 - Local Mac testing used 8 real paint-marked videos (7,809 source frames). Across 96 inspected frames, 6 recordings showed no obvious marker switching; 2 showed drift and were excluded. This is sampled visual review, not a measured accuracy.
 - After exclusions, 17 automatically eligible cycles still needed event review. No animal-level treatment comparison was claimed.
 - Suspended movement does not produce treadmill stance/swing or dragging metrics. ALMA requires true capture rate and the appropriate speed/scale calibration.

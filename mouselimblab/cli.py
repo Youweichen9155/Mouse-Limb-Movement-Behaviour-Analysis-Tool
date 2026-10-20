@@ -1,5 +1,6 @@
 import argparse
 import json
+import sys
 from pathlib import Path
 from .workflow import run_clip,summarize_reviewed
 
@@ -12,6 +13,11 @@ def load_project(path):
     return spec
 
 def main(argv=None):
+    # Redirected Windows streams can default to a Western encoding. Chinese
+    # progress text and file names must not abort an otherwise valid analysis.
+    for stream in (sys.stdout,sys.stderr):
+        if stream is not None and hasattr(stream,'reconfigure'):
+            stream.reconfigure(encoding='utf-8',errors='backslashreplace')
     p=argparse.ArgumentParser(description='MouseLimbLab — independent local / ALMA engines')
     sub=p.add_subparsers(dest='command')
     run=sub.add_parser('run');run.add_argument('project');run.add_argument('--output',required=True)

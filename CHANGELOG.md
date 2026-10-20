@@ -10,6 +10,7 @@ First packaged desktop update of the original public colour-marker tool.
 - Preserves source frames and long gaps; separates capture/playback rates and
   prevents overwriting original videos.
 - Fixes video rotation across preview, tracking, annotations and export.
+- Fixes Chinese progress output with redirected Windows streams using Western system encodings.
 - Adds Mac ARM64/Windows x64 packages, source, licenses, checksums and native tests.
 
 Research preview: drift was found in two of eight real recordings. Review and

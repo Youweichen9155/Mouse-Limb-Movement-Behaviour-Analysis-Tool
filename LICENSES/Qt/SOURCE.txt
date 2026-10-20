@@ -1,0 +1,5 @@
+PySide6 Essentials and shiboken6 6.9.3
+Upstream: https://code.qt.io/cgit/pyside/pyside-setup.git/?h=v6.9.3
+Source archive: https://github.com/pyside/pyside-setup/archive/refs/tags/v6.9.3.tar.gz
+Qt 6.9.3 sources: https://download.qt.io/archive/qt/6.9/6.9.3/single/
+The GPL-3.0 text is included at ../../LICENSE. These license texts supplement the binary wheel metadata.
