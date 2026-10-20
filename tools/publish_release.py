@@ -54,6 +54,7 @@ def main():
         smoke=info['native_smoke_test']
         assert smoke['native_analysis']==smoke['native_gui']==smoke['chinese_font_glyphs']=='passed'
         assert smoke['native_help']==smoke['native_dlc']=='passed'
+        assert smoke['native_gui_analysis']=='passed' and smoke['overlay_decoded_frames']==180
         assert smoke['source_commit']==a.commit
         archive=one(f'MouseLimbLab_{label}_{version}.zip')
         # macOS ditto writes UTF-8 names without setting the ZIP UTF-8 flag.
@@ -84,10 +85,10 @@ def main():
     Path('release-notes.md').write_text(notes,encoding='utf-8')
     tag='v'+version
     subprocess.run(['gh','release','create',tag,*map(str,sorted(out.iterdir())),
-                    '--repo',repo,'--target',a.commit,'--draft','--prerelease',
+                    '--repo',repo,'--target',a.commit,'--draft',
                     '--title',f'MouseLimbLab {tag} — Mac / Windows',
                     '--notes-file','release-notes.md'],check=True)
-    subprocess.run(['gh','release','edit',tag,'--repo',repo,'--draft=false'],check=True)
+    subprocess.run(['gh','release','edit',tag,'--repo',repo,'--draft=false','--latest'],check=True)
 
 
 if __name__=='__main__':main()

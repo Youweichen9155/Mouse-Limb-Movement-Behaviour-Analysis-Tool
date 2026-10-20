@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.3 — 2026-10-20
+
+- Fixes a macOS crash when the GUI worker generates charts by giving the analysis thread an 8 MiB stack.
+- Adds a full GUI video-analysis regression test, including PNG/PDF, result loading and MP4 export.
+- Checks the same GUI workflow in both native packages and decodes every exported test-video frame.
+- Adds an Open Results Folder button and displays the completed output path.
+
 ## 1.1.2 — 2026-10-20
 
 - Simplifies in-app help, DeepLabCut guidance and analysis report explanations.

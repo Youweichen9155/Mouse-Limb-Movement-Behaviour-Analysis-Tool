@@ -33,7 +33,7 @@ jobs:
           run-id: ${{ inputs.build_run_id }}
           pattern: MouseLimbLab-*
           path: downloaded
-      - name: Verify packages and publish research preview
+      - name: Verify packages and publish release
         env:
           GH_TOKEN: ${{ github.token }}
           BUILD_RUN_ID: ${{ inputs.build_run_id }}

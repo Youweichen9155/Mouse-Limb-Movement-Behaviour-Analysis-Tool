@@ -26,8 +26,13 @@ def main(argv=None):
     sub.add_parser('gui')
     smoke=sub.add_parser('gui-smoke');smoke.add_argument('--screenshot',required=True);smoke.add_argument('--project');smoke.add_argument('--dlc-project');smoke.add_argument('--tab',type=int,default=0)
     smoke.add_argument('--dlc-python');smoke.add_argument('--dlc-probe-output')
+    gui_run=sub.add_parser('gui-run-smoke');gui_run.add_argument('project')
+    gui_run.add_argument('--output',required=True);gui_run.add_argument('--screenshot',required=True)
     demo=sub.add_parser('demo');demo.add_argument('--output',required=True)
     a=p.parse_args(argv)
+    if a.command=='gui-run-smoke':
+        from .gui_checks import run_gui_analysis
+        return run_gui_analysis(load_project(a.project),a.output,a.screenshot)
     if a.command=='gui-smoke':
         from PySide6.QtCore import QTimer
         from PySide6.QtGui import QRawFont

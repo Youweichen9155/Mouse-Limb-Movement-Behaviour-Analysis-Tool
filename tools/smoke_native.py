@@ -31,6 +31,28 @@ def main():
     assert manifest['state']=='complete' and manifest['summary']['frame_count']>=20
     for name in ('frame_tracks.csv','cycle_metrics.csv','signals.pdf','signals.png','report.html'):
         assert (manifests[0].parent/name).stat().st_size>0,name
+    # Exercise the button -> QThread -> plotting -> video -> result-table path.
+    # A CLI-only analysis misses stack failures in the GUI worker on macOS.
+    sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+    from mouselimblab.demo import make_video_demo
+    from mouselimblab.video import open_video
+    make_video_demo(out/'gui_input')
+    run('gui_analysis',['gui-run-smoke',str(out/'gui_input/video_project.json'),
+                        '--output',str(out/'gui_results'),'--screenshot',str(out/'native_gui_analysis.png')])
+    gui_manifest_paths=list((out/'gui_results').glob('local_*/manifest.json'))
+    assert len(gui_manifest_paths)==1
+    gui_manifest=json.loads(gui_manifest_paths[0].read_text(encoding='utf-8'))
+    assert gui_manifest['state']=='complete' and gui_manifest['summary']['frame_count']==180
+    folder=gui_manifest_paths[0].parent
+    for name in ('signals.pdf','signals.png','cycles.pdf','cycles.png',
+                 'trajectories.pdf','trajectories.png','overlay.mp4','report.html'):
+        assert (folder/name).stat().st_size>0,name
+    cap=open_video(folder/'overlay.mp4');decoded=0
+    try:
+        while cap.read()[0]:decoded+=1
+    finally:
+        cap.release()
+    assert decoded==180,decoded
     for name,tab in (('gui',0),('help',3),('dlc',2)):
         screenshot=out/f'native_{name}.png'
         run(name,['gui-smoke','--project',str(out/'demo/demo_input/demo_project.json'),
@@ -40,7 +62,8 @@ def main():
     if sys.platform=='darwin':
         subprocess.run(['/usr/bin/codesign','--verify','--deep','--strict',str(dist/'MouseLimbLab.app')],check=True)
         signature='ad-hoc signature verified; not notarized'
-    result={'native_analysis':'passed','native_gui':'passed','native_help':'passed','native_dlc':'passed','version':manifest['version'],
+    result={'native_analysis':'passed','native_gui':'passed','native_gui_analysis':'passed','overlay_decoded_frames':decoded,
+            'native_help':'passed','native_dlc':'passed','version':manifest['version'],
             'platform':platform.platform(),'machine':platform.machine(),'signature':signature,
             'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
             'qt_platform':env['QT_QPA_PLATFORM'],'chinese_font_glyphs':'passed',
