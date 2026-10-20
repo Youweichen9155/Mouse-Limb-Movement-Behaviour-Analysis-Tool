@@ -46,6 +46,12 @@ w.seeds={'hip':[1,2]};w.target='foot'
 w.set_video('next.mp4',reset=True)
 assert w.coordinates==w.phase_events_path==''
 assert w.seeds=={} and w.target is None and w.result is None
+class Busy:
+    def isRunning(self):return True
+w.worker=Busy();errors=[];w.error=errors.append
+w.start();w.save_phases()
+assert len(errors)==2 and all('尚未完成' in message for message in errors)
+w.worker=None
 w.close()
 '''
     result=subprocess.run([sys.executable,'-c',script],capture_output=True,text=True,env={**os.environ,'QT_QPA_PLATFORM':'minimal'},timeout=30)

@@ -251,6 +251,7 @@ class Window(QMainWindow):
         self.phase_events_path=spec.get('phase_events','')
         self.phase_method.setCurrentIndex(self.phase_method.findData(s.phase_method))
     def start(self):
+        if self.worker and self.worker.isRunning():return self.error('当前分析尚未完成，请等待完成或取消后再开始。')
         try:
             spec=self.spec();Settings(**spec['settings']).validate(spec['engine'])
             if spec['engine']=='alma' and not spec['coordinates']:raise ValueError('ALMA 模式请导入六点轨迹 CSV。')
@@ -303,6 +304,7 @@ class Window(QMainWindow):
         if self.review is not None and self.review.columns[c]=='cycle_id':
             self.tabs.setCurrentIndex(0);self.slider.setValue(int(self.review.iloc[r]['source_frame_start']))
     def save_phases(self):
+        if self.worker and self.worker.isRunning():return self.error('当前分析尚未完成，请等待完成后再应用相位修正。')
         if self.result is None or self.review is None or self.review.empty:return self.error('先打开含周期的分析结果。')
         if self.engine.currentData()!='local':return self.error('ALMA 使用官方相位事件。')
         try:
