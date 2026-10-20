@@ -17,7 +17,9 @@ def main():
     assert executable.is_file(),executable
     env=dict(os.environ)
     for key in ('PYTHONHOME','PYTHONPATH','QT_PLUGIN_PATH','QT_QPA_PLATFORM_PLUGIN_PATH'):env.pop(key,None)
-    env.update(QT_QPA_PLATFORM='minimal',PYTHONDONTWRITEBYTECODE='1')
+    # Native macOS styles require Cocoa objects absent from Qt's minimal plugin.
+    # Use the portable offscreen renderer for automated screenshot checks.
+    env.update(QT_QPA_PLATFORM='offscreen',QT_STYLE_OVERRIDE='Fusion',PYTHONDONTWRITEBYTECODE='1')
     def run(name,parameters):
         with (out/f'{name}.log').open('w',encoding='utf-8') as log:
             subprocess.run([str(executable),*parameters],env=env,stdout=log,stderr=subprocess.STDOUT,check=True,timeout=180)
