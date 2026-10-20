@@ -76,7 +76,7 @@ ALMA 使用 [sollan/alma](https://github.com/sollan/alma) 提交 `47703fc3769064
 
 官方列名 `swing/stance/drag percentage (%)` 的值实际为 0–1；为保持可核对性原表不改名，主表新增 `ALMA_*_fraction` 和乘 100 的 `ALMA_*_pct`。当前上游 `pairwise_dtw` 已改为重采样后的距离，不是真正 DTW。上游连续拖曳过滤的末尾帧行为原样保留，见代码审查说明。
 
-现有无标记试验模型跨录像迁移未通过验证，训练/压力测试脚本保存在审计归档中，未作为产品默认追踪器。两引擎的踝角定义、ROM 定义与筛选条件不同，不能直接合并为同一指标。
+现有无标记试验模型跨录像迁移未通过验证，未作为产品默认追踪器。公开包不含私人研究脚本或实验录像。两引擎的踝角定义、ROM 定义与筛选条件不同，不能直接合并为同一指标。
 
 ## 批量与重新构建
 
@@ -90,10 +90,10 @@ python -m pip install pyinstaller==6.16.0
 python build_app.py
 ```
 
-项目 JSON 内可使用相对于 JSON 的输入路径。Windows 打包脚本为 `Build_Windows.bat`。`.github/workflows/build.yml` 可在以本程序文件夹为根目录的仓库中运行三平台原生构建；本次没有创建仓库或执行云端发布。
+项目 JSON 内可使用相对于 JSON 的输入路径。Windows 打包脚本为 `Build_Windows.bat`。仓库的 `.github/workflows/desktop.yml` 在 Mac ARM64 和 Windows x64 上运行测试、原生构建及程序启动检查；通过后发布相应压缩包。构建方法见 [BUILDING.md](BUILDING.md)。
 
 ## 引用与许可
 
 Aljovic A., Zhao S. et al. *A deep learning-based toolbox for Automated Limb Motion Analysis (ALMA) in murine models of neurological disorders*. Communications Biology 5, 131 (2022). [DOI](https://doi.org/10.1038/s42003-022-03077-6).
 
-由于包含 GPL-3.0 ALMA 代码，本整合源码及派生部分按 GPL-3.0 分发；完整源码与许可证随包提供。第三方库保留各自许可，见 `THIRD_PARTY_NOTICES.md`。
+由于包含 GPL-3.0 ALMA 代码，本整合源码及派生部分按 GPL-3.0 分发；完整源码与许可证随包提供。原版 `analyze_video.py` 保留 MIT 许可，第三方库保留各自许可，见 [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md)。
