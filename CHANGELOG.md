@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.4
+
+- Add velocity-based phase detection, red/black limb sequences and velocity plots.
+- Export per-frame phases and editable cycle boundaries; reanalysis saves a new result.
+- Verify consecutive GUI analyses and clear prior CSV/phase state on a new video.
+
 ## 1.1.3 — 2026-10-20
 
 - Fixes a macOS crash when the GUI worker generates charts by giving the analysis thread an 8 MiB stack.

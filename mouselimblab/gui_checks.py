@@ -26,9 +26,10 @@ def run_gui_analysis(spec, output, screenshot):
     window.error=record_error
     sys.excepthook=exception_hook
     result_code=1
+    completed=0
 
     def check():
-        nonlocal result_code
+        nonlocal result_code, completed
         if window.worker is not None and window.worker.isRunning():
             return
         if not failures and window.result is None:
@@ -41,12 +42,24 @@ def run_gui_analysis(spec, output, screenshot):
             manifest=json.loads((folder/'manifest.json').read_text(encoding='utf-8'))
             assert manifest['state']=='complete'
             for name in ('signals.png','signals.pdf','trajectories.png',
-                         'trajectories.pdf','report.html','cycle_metrics.csv'):
+                         'trajectories.pdf','report.html','cycle_metrics.csv',
+                         'limb_sequence.png','limb_sequence.pdf','phase_velocity.png',
+                         'phase_velocity.pdf','phase_frames.csv'):
                 assert (folder/name).stat().st_size>0,name
             if spec.get('overlay') and spec.get('video'):
                 assert (folder/'overlay.mp4').stat().st_size>0
             assert window.tracks is not None and window.review is not None
             assert window.run_button.isEnabled()
+            assert window.isVisible()
+            completed+=1
+            print(f'GUI analysis {completed} completed: {folder}',flush=True)
+            if completed < 2:
+                # Reuse this same window and worker lifecycle for the next clip.
+                window.apply_spec(spec)
+                window.result=None
+                window.tabs.setCurrentIndex(0)
+                QTimer.singleShot(0,start)
+                return
             window.tabs.setCurrentIndex(1)
             assert window.grab().save(str(screenshot))
             print(f'GUI analysis completed: {folder}',flush=True)
@@ -54,8 +67,9 @@ def run_gui_analysis(spec, output, screenshot):
         except Exception:
             record_error(traceback.format_exc())
         finally:
-            window.close()
-            app.quit()
+            if completed >= 2 or failures:
+                window.close()
+                app.quit()
 
     def start():
         window.run_button.click()

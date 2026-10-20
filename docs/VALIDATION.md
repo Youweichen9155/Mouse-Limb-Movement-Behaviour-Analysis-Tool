@@ -1,5 +1,18 @@
 # Validation record
 
+## v1.1.4 velocity phases and continuous use (2026-10-20)
+
+The phase fixtures check known 65% stance timing, mirrored recordings, body
+translation, capture-rate scaling, missing runs, stationary signals and manual
+event recalculation. Both phase plots and their source tables are checked.
+The GUI test runs two analyses in one window, confirms the window remains
+visible and the Run button returns, and verifies separate outputs.
+ALMA event definitions remain unchanged.
+
+The reported 926-frame recording was also used to inspect the new stick
+sequence and velocity plots. This is an execution/rendering check; automated
+event timings are validated against the synthetic timing fixture.
+
 ## v1.1.3 GUI export fix (2026-10-20)
 
 Two user crash reports on Mac identified an OpenBLAS matrix inversion failure

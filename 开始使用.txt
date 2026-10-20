@@ -1,4 +1,4 @@
-MouseLimbLab 1.1.3 · 小鼠后肢运动分析
+MouseLimbLab 1.1.4 · 小鼠后肢运动分析
 
 启动
 完整解压后，Mac 打开 MouseLimbLab.app，Windows 打开 MouseLimbLab.exe。
@@ -19,6 +19,11 @@ DeepLabCut
 在第 3 页抽帧、标注六点、训练、评估和预测，再选择分析方法。
 首次训练：安装 Python 3.12，联网运行随包的 Install_DeepLabCut_Mac.command
 或 Install_DeepLabCut_Windows.bat，再在训练页选择环境并点击“检查环境”。
+
+连续分析与相位图
+分析完成后窗口保持打开。点击“打开视频…”，重新标记即可处理下一段。
+自动输出红黑连续姿态图和足端速度相位曲线：红色摆动、黑色支撑。
+第 2 页可查看图，并修改相位边界后点击“应用相位修正并重分析”。
 
 结果
 每次分析生成新的结果文件夹，包含 CSV、PNG/PDF 图、HTML 报告及可选叠加视频。

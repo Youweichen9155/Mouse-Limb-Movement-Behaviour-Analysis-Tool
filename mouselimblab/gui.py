@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (QApplication,QMainWindow,QWidget,QVBoxLayout,QHBo
     QPushButton,QLabel,QLineEdit,QComboBox,QDoubleSpinBox,QSpinBox,QCheckBox,QFileDialog,QMessageBox,
     QTabWidget,QSplitter,QScrollArea,QSlider,QTableWidget,QTableWidgetItem,QTextEdit,QHeaderView)
 from .analysis import Settings
+from . import __version__
 from .workflow import run_clip,video_info,write_json,overlay_frame,summarize_reviewed
 from .tracking import JOINTS
 from .video import open_video
@@ -62,7 +63,7 @@ class Worker(QThread):
 
 class Window(QMainWindow):
     def __init__(self):
-        super().__init__();self.setWindowTitle('MouseLimbLab · 小鼠后肢运动分析');self.resize(1250,880)
+        super().__init__();self.setWindowTitle(f'MouseLimbLab {__version__} · 小鼠后肢运动分析');self.resize(1250,880)
         self.video='';self.coordinates='';self.seeds={};self.target=None;self.frame_index=0
         self.result=None;self.tracks=None;self.review=None;self.edits=[];self.worker=None
         self.tabs=QTabWidget();self.setCentralWidget(self.tabs)
@@ -79,6 +80,7 @@ class Window(QMainWindow):
         form.addRow(self.button('导入轨迹 CSV…',self.open_csv));form.addRow(self.csv_label)
         form.addRow(self.button('清除 CSV，使用视频追踪',self.clear_csv))
         self.side=QComboBox();self.side.addItem('无侧别后缀','unsided');self.side.addItem('左侧 L','l');self.side.addItem('右侧 R','r');form.addRow('DLC 身体侧别',self.side)
+        self.phase_method=QComboBox();self.phase_method.addItem('足端速度换向','velocity');self.phase_method.addItem('位移峰谷（原方法）','position');form.addRow('四点相位识别',self.phase_method)
         self.conf=self.number(.9,0,1,2);form.addRow('DLC 置信度阈值',self.conf)
         self.video_fps=self.number(30,.01,2000,3);form.addRow('视频播放帧率',self.video_fps)
         self.capture_fps=self.number(0,0,2000,3);self.capture_fps.setSpecialValueText('未知（仅播放时间）');form.addRow('实际采集帧率',self.capture_fps)
@@ -116,7 +118,11 @@ class Window(QMainWindow):
         reviewpage=QWidget();rv=QVBoxLayout(reviewpage);self.tabs.addTab(reviewpage,'2  周期与轨迹复核')
         toolbar=QHBoxLayout();rv.addLayout(toolbar)
         for label,fn in [('打开已有结果…',self.open_result),('保存周期复核',self.save_review),('打开结果文件夹',self.open_result_folder),('打开分析报告',self.open_report),('按动物汇总…',self.aggregate)]:toolbar.addWidget(self.button(label,fn))
-        tip=QLabel('纳入：1＝确认纳入，0＝排除，空白＝未复核。双击周期行跳到原始视频对应帧；复核结果按引擎分别保存。');tip.setWordWrap(True);rv.addWidget(tip)
+        tip=QLabel('纳入：1＝纳入，0＝排除，空白＝未复核。双击周期编号查看原视频。四点方法可修改起始、摆动开始、结束帧，再点击“应用相位修正并重分析”。');tip.setWordWrap(True);rv.addWidget(tip)
+        phasebar=QHBoxLayout();rv.addLayout(phasebar)
+        phasebar.addWidget(self.button('查看速度与相位图',lambda:self.open_plot('phase_velocity.png')))
+        phasebar.addWidget(self.button('查看连续姿态图',lambda:self.open_plot('limb_sequence.png')))
+        self.phase_apply=self.button('应用相位修正并重分析',self.save_phases);phasebar.addWidget(self.phase_apply)
         self.table=QTableWidget();self.table.cellDoubleClicked.connect(self.jump_cycle);rv.addWidget(self.table)
         self.correction_joint=QComboBox();self.correction_joint.addItems(['hip','knee','ankle','foot','mtp','crest'])
         correction=QHBoxLayout();correction.addWidget(QLabel('校正当前帧关节：'));correction.addWidget(self.correction_joint)
@@ -126,6 +132,8 @@ class Window(QMainWindow):
 <p><b>ALMA 六点分析</b>：导入髂嵴、髋、膝、踝、跖趾关节（MTP）、趾尖六点 CSV，选择跑台或自发行走。填写实际采集帧率；跑台填写跑带速度，自发行走填写 px/cm。</p>
 <p><b>DeepLabCut</b>：第 3 页支持抽帧、六点标注、训练、评估和预测。安装随包提供的训练环境，用自己的视频标注训练模型，再将预测送入所选分析方法。</p>
 <p><b>查看结果</b>：检查叠加轨迹，按需校正坐标并重分析。在“周期与轨迹复核”中填 1 纳入、0 排除，保存后按动物汇总。每次分析生成新的结果文件夹。</p>
+<p><b>姿态与相位</b>：自动导出连续姿态图和足端速度曲线。红色为摆动相，黑色为支撑相，灰色为未分类。四点方法默认按足端相对髋部的速度换向识别，可在复核表修改边界后重分析。悬空运动显示前伸/后撤。</p>
+<p>分析完成后窗口保持打开。点击“打开视频…”，选择新视频并重新标记，即可继续分析。</p>
 <h3>录制参数</h3>
 <p>使用固定机位、正立侧视、固定帧率的视频。播放帧率由视频读取，实际采集帧率按录制设置填写。例如 240 fps 慢动作以 30 fps 导出：播放填 30，采集填 240。</p>
 <h3>方法与输出</h3>
@@ -162,6 +170,7 @@ class Window(QMainWindow):
         self.mode_note.setText('导入六点 CSV；跑台填写速度，自发行走填写标尺。' if alma else '首帧选择四个颜料标记，或导入四点 CSV。')
         for b in self.seed_buttons:b.setEnabled(not alma)
         for w in (self.cutoff,self.drag,self.drag_frames,self.max_height,self.max_stride):w.setEnabled(alma)
+        self.phase_method.setEnabled(not alma);self.phase_apply.setEnabled(not alma)
         self.ground.setEnabled(not alma);self.ground_set.setEnabled(not alma)
     def set_target(self,target):self.target=target;self.hint.setText('请在画面中点击：'+target)
     def select_seed(self,j):
@@ -185,12 +194,14 @@ class Window(QMainWindow):
         if reset:
             self.seeds={};self.tracks=None;self.canvas.points={};self.canvas.ground=None;self.ground_set.setChecked(False);self.edits=[]
             self.correction_path='';self.result=None;self.review=None
+            self.phase_events_path='';self.target=None;self.clear_csv();self.table.setRowCount(0)
         self.slider.setValue(0);self.show_frame(0)
     def open_csv(self):
         p,_=QFileDialog.getOpenFileName(self,'选择逐帧或 DLC CSV','','CSV (*.csv)')
         if p:
             self.coordinates=p;self.csv_label.setText(Path(p).name);self.csv_label.setToolTip(p)
             self.correction_path='';self.result=None;self.review=None;self.tracks=None;self.edits=[]
+            self.phase_events_path=''
     def clear_csv(self):self.coordinates='';self.csv_label.setText('未选择 CSV：使用四色标记追踪')
     def show_frame(self,n):
         self.frame_index=n;self.frame_label.setText(f'源帧 {n}')
@@ -207,10 +218,12 @@ class Window(QMainWindow):
                    px_per_cm=self.scale.value() or None,belt_cm_s=self.belt.value() or None,ground_y_px=self.ground.value() if self.ground_set.isChecked() else None,
                    max_gap_frames=self.gap.value(),direction=self.direction.currentData(),cutoff_hz=self.cutoff.value(),
                    alma_drag_clearance_cm=self.drag.value(),drag_min_frames=self.drag_frames.value(),step_height_max_cm=self.max_height.value(),stride_length_max_cm=self.max_stride.value())
+        s.phase_method=self.phase_method.currentData()
         spec={'engine':self.engine.currentData(),'video':self.video,'coordinates':self.coordinates,'seeds':self.seeds,'settings':asdict(s),
               'side':self.side.currentData(),'likelihood':self.conf.value(),'animal_id':self.animal.text().strip(),'group':self.group.text().strip(),
               'trial_id':self.trial.text().strip(),'overlay':self.overlay.isChecked()}
         if getattr(self,'correction_path',''):spec['corrections']=self.correction_path
+        if getattr(self,'phase_events_path','') and spec['engine']=='local':spec['phase_events']=self.phase_events_path
         return spec
     def save_project(self):
         p,_=QFileDialog.getSaveFileName(self,'保存配置','limb_project.json','JSON (*.json)')
@@ -235,6 +248,8 @@ class Window(QMainWindow):
         self.conf.setValue(spec.get('likelihood',.9));self.overlay.setChecked(spec.get('overlay',False))
         for w,key in [(self.animal,'animal_id'),(self.group,'group'),(self.trial,'trial_id')]:w.setText(spec.get(key,''))
         self.correction_path=spec.get('corrections','');self.edits=[];self.canvas.update()
+        self.phase_events_path=spec.get('phase_events','')
+        self.phase_method.setCurrentIndex(self.phase_method.findData(s.phase_method))
     def start(self):
         try:
             spec=self.spec();Settings(**spec['settings']).validate(spec['engine'])
@@ -248,7 +263,7 @@ class Window(QMainWindow):
         if self.worker:self.worker.cancelled.set();self.log.append('已请求取消，当前计算结束后停止。')
     def finished(self,folder):
         self.run_button.setEnabled(True);self.cancel_button.setEnabled(False);self.load_result(folder);self.log.append(f'分析完成：{folder}')
-        self.hint.setText('分析完成。在“周期与轨迹复核”中打开结果文件夹或分析报告。')
+        self.hint.setText('分析完成，结果已保存。可查看结果，或点击“打开视频…”继续分析下一段。')
     def failed(self,text):
         self.run_button.setEnabled(True);self.cancel_button.setEnabled(False);self.log.append(text);self.error(text.splitlines()[-1])
     def open_result(self):
@@ -260,16 +275,24 @@ class Window(QMainWindow):
         folder=Path(p);spec=json.loads((folder/'project.json').read_text(encoding='utf-8'));self.apply_spec(spec)
         self.result=folder;self.tracks=pd.read_csv(folder/'frame_tracks.csv').set_index('source_frame')
         self.review=pd.read_csv(folder/'cycle_review.csv').fillna('');self.table.clear();self.table.setRowCount(len(self.review));self.table.setColumnCount(len(self.review.columns))
-        self.table.setHorizontalHeaderLabels(list(self.review.columns))
+        labels={'cycle_id':'周期','source_frame_start':'起始帧','source_frame_transition':'摆动开始帧',
+                'source_frame_end':'结束帧','automatic_include':'自动纳入','manual_include':'人工纳入','review_note':'备注'}
+        self.table.setHorizontalHeaderLabels([labels.get(c,c) for c in self.review.columns])
         for r in range(len(self.review)):
             for c,col in enumerate(self.review.columns):
                 item=QTableWidgetItem(str(self.review.iloc[r,c]))
-                if col not in ('manual_include','review_note'):item.setFlags(item.flags()&~Qt.ItemIsEditable)
+                editable=('manual_include','review_note')
+                if spec.get('engine','local')=='local':editable+=('source_frame_start','source_frame_transition','source_frame_end')
+                if col not in editable:item.setFlags(item.flags()&~Qt.ItemIsEditable)
                 self.table.setItem(r,c,item)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents);self.show_frame(self.slider.value())
     def save_review(self):
         if self.result is None:return self.error('先打开一份结果。')
         df=self.review.copy()
+        for r in range(len(df)):
+            for col in ('source_frame_start','source_frame_transition','source_frame_end'):
+                if self.table.item(r,df.columns.get_loc(col)).text().strip()!=str(df.iloc[r][col]):
+                    return self.error('相位帧号已修改，请点击“应用相位修正并重分析”。')
         for r in range(len(df)):
             for c,col in enumerate(df.columns):
                 if col in ('manual_include','review_note'):df.loc[r,col]=self.table.item(r,c).text().strip()
@@ -277,8 +300,27 @@ class Window(QMainWindow):
         if ((df.manual_include.astype(str).isin(['1','1.0']))&~df.automatic_include.eq(True)).any():return self.error('该周期已自动排除。修正坐标并重新分析后，再选择纳入。')
         df.to_csv(self.result/'cycle_review.csv',index=False);self.review=df;self.log.append('已保存周期复核。')
     def jump_cycle(self,r,c):
-        if self.review is not None:
+        if self.review is not None and self.review.columns[c]=='cycle_id':
             self.tabs.setCurrentIndex(0);self.slider.setValue(int(self.review.iloc[r]['source_frame_start']))
+    def save_phases(self):
+        if self.result is None or self.review is None or self.review.empty:return self.error('先打开含周期的分析结果。')
+        if self.engine.currentData()!='local':return self.error('ALMA 使用官方相位事件。')
+        try:
+            import uuid
+            from .phases import manual_events
+            columns=['source_frame_start','source_frame_transition','source_frame_end']
+            rows=[{col:self.table.item(r,self.review.columns.get_loc(col)).text() for col in columns} for r in range(len(self.review))]
+            events=pd.DataFrame(rows)
+            valid=np.isfinite(self.tracks[[f'{j}_{a}_px_smooth' for j in JOINTS for a in ('x','y')]]).all(axis=1).to_numpy()
+            manual_events(events,self.tracks.index.to_numpy(),valid)
+            path=self.result/('manual_phase_events_'+uuid.uuid4().hex[:8]+'.csv')
+            events.to_csv(path,index=False)
+            self.phase_events_path=str(path);self.coordinates=str(self.result/'raw_tracks.csv')
+            self.csv_label.setText('已加载轨迹与相位修正');self.tabs.setCurrentIndex(0);self.start()
+        except Exception as e:self.error(e)
+    def open_plot(self,name):
+        if self.result and (self.result/name).exists():QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.result/name)))
+        else:self.error('分析完成后可查看此图；旧版结果请重新分析。')
     def set_correction_target(self):
         if not self.video or self.result is None:return self.error('先打开含视频的分析结果。')
         self.tabs.setCurrentIndex(0);self.set_target('edit:'+self.correction_joint.currentText())
