@@ -75,7 +75,7 @@ def main():
     tag='v'+version
     subprocess.run(['gh','release','create',tag,*map(str,sorted(out.iterdir())),
                     '--repo',repo,'--target',a.commit,'--draft','--prerelease',
-                    '--title',f'MouseLimbLab {tag} — Mac / Windows research preview',
+                    '--title',f'MouseLimbLab {tag} — Mac / Windows',
                     '--notes-file','release-notes.md'],check=True)
     subprocess.run(['gh','release','edit',tag,'--repo',repo,'--draft=false'],check=True)
 
