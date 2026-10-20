@@ -19,7 +19,8 @@ def main():
     for key in ('PYTHONHOME','PYTHONPATH','QT_PLUGIN_PATH','QT_QPA_PLATFORM_PLUGIN_PATH'):env.pop(key,None)
     # Native macOS styles require Cocoa objects absent from Qt's minimal plugin.
     # Use the portable offscreen renderer for automated screenshot checks.
-    env.update(QT_QPA_PLATFORM='offscreen',QT_STYLE_OVERRIDE='Fusion',PYTHONDONTWRITEBYTECODE='1')
+    env.update(QT_QPA_PLATFORM='windows' if sys.platform=='win32' else 'offscreen',
+               QT_STYLE_OVERRIDE='Fusion',PYTHONDONTWRITEBYTECODE='1')
     def run(name,parameters):
         with (out/f'{name}.log').open('w',encoding='utf-8') as log:
             subprocess.run([str(executable),*parameters],env=env,stdout=log,stderr=subprocess.STDOUT,check=True,timeout=180)
@@ -40,6 +41,7 @@ def main():
     result={'native_analysis':'passed','native_gui':'passed','version':manifest['version'],
             'platform':platform.platform(),'machine':platform.machine(),'signature':signature,
             'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+            'qt_platform':env['QT_QPA_PLATFORM'],'chinese_font_glyphs':'passed',
             'synthetic_only':True,'biological_accuracy_validated':False}
     (out/'SMOKE_TEST.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8')
     print(json.dumps(result,indent=2))

@@ -29,10 +29,13 @@ def main(argv=None):
     demo=sub.add_parser('demo');demo.add_argument('--output',required=True)
     a=p.parse_args(argv)
     if a.command=='gui-smoke':
-        from PySide6.QtWidgets import QApplication
         from PySide6.QtCore import QTimer
-        from .gui import Window
-        app=QApplication([]);window=Window()
+        from PySide6.QtGui import QRawFont
+        from .gui import Window,create_application
+        app=create_application([])
+        font=QRawFont.fromFont(app.font())
+        assert all(font.supportsCharacter(c) for c in '中文Mouse123'), 'Missing UI font glyphs'
+        window=Window()
         if a.project:window.apply_spec(load_project(a.project))
         if a.dlc_project:window.dlc_panel.load(a.dlc_project)
         window.tabs.setCurrentIndex(a.tab)
