@@ -19,6 +19,8 @@ from .analysis import Settings, analyse
 from .io import load_coordinates
 from .tracking import JOINTS, track_video
 from .video import open_video, COORDINATE_SYSTEM
+from .phases import add_phase_columns
+from .phase_plots import plot_phases
 
 def sha256(path):
     h = hashlib.sha256()
@@ -140,6 +142,8 @@ def run_clip(spec,output_root,progress=lambda s:None,cancelled=lambda:False):
     settings=Settings(**spec.get('settings',{}));settings.validate(engine)
     if engine=='alma' and not spec.get('coordinates'):
         raise ValueError('ALMA 模式请导入六点 DLC/逐帧 CSV；四色追踪仅提供四点。')
+    if engine=='alma' and spec.get('phase_events'):
+        raise ValueError('手工相位边界用于四点方法；ALMA 使用官方相位事件。')
     spec = {**spec, 'engine':engine, 'settings':asdict(settings), 'coordinate_system':COORDINATE_SYSTEM}
     root=Path(output_root).expanduser().resolve();root.mkdir(parents=True,exist_ok=True)
     folder=root/(engine+'_'+datetime.now().strftime('%Y%m%d_%H%M%S')+'_'+uuid.uuid4().hex[:8]);folder.mkdir()
@@ -176,7 +180,13 @@ def run_clip(spec,output_root,progress=lambda s:None,cancelled=lambda:False):
             work,cycles,curves,summary,raw_alma=analyse_alma(table,settings)
             raw_alma.to_csv(folder/'ALMA_official_parameters.csv',index=False)
         else:
-            work,cycles,curves,summary=analyse(table,settings)
+            phase_events = None
+            if spec.get('phase_events'):
+                sources['phase_events']={'path':spec['phase_events'],'sha256':sha256(spec['phase_events'])}
+                phase_events=pd.read_csv(spec['phase_events'])
+            work,cycles,curves,summary=analyse(table,settings,phase_events)
+        if engine=='alma':
+            work=add_phase_columns(work,cycles,settings,'alma')
         summary.update(animal_id=spec.get('animal_id',''),group=spec.get('group',''),trial_id=spec.get('trial_id',''))
         work.to_csv(folder/'frame_tracks.csv',index=False)
         cycles.to_csv(folder/'cycle_metrics.csv',index=False)
@@ -184,6 +194,7 @@ def run_clip(spec,output_root,progress=lambda s:None,cancelled=lambda:False):
         pd.DataFrame([summary]).to_csv(folder/'clip_summary.csv',index=False)
         cycles[['cycle_id','source_frame_start','source_frame_transition','source_frame_end','automatic_include','manual_include','review_note']].to_csv(folder/'cycle_review.csv',index=False)
         progress('导出轨迹图与周期质控图…');plot_results(work,cycles,curves,folder)
+        progress('导出速度相位曲线与连续姿态图…');plot_phases(work,cycles,settings,folder,engine)
         if spec.get('overlay') and spec.get('video'):render_overlay(spec['video'],work,folder/'overlay.mp4',progress,cancelled)
         if cancelled():raise InterruptedError('已取消')
         write_json(folder/'manifest.json',{'version':__version__,'python':platform.python_version(),'platform':platform.platform(),
@@ -197,8 +208,15 @@ def run_clip(spec,output_root,progress=lambda s:None,cancelled=lambda:False):
 <p>在“周期与轨迹复核”中选择有效周期，保存后按动物汇总。动物编号与组别来自项目设置。</p>
 <p>时序：{'已填写采集帧率，可报告真实秒数。' if settings.capture_fps else '仅播放时间；真实秒数留空。慢动作视频请填写实际采集帧率。'}</p>
 <p>{method_note}</p>
+<h2>连续后肢姿态</h2><p>{'红色：前伸；黑色：后撤。' if settings.protocol=='suspended' else '红色：摆动相；黑色：支撑相。'}灰色：未分类。
+每帧髋部横向对齐，再按时间等距展开；横向排布用于展示时间顺序。</p><img src="limb_sequence.png">
+<h2>足端速度与相位</h2><p>速度以髋部为参考，前伸为正。虚线标记摆动开始；点线标记周期起始。
+{'ALMA 相位沿用官方事件。' if engine=='alma' else '相位方法：'+{'velocity':'速度换向','position':'位移峰谷','manual':'人工修正'}[summary['phase_method']]+'。'}
+未填写实际采集帧率时，速度单位为 px/frame。</p><img src="phase_velocity.png">
 {pd.DataFrame([summary]).T.to_html(header=False,escape=True)}<h2>轨迹</h2><img src="trajectories.png"><h2>原始帧与事件</h2><img src="signals.png">
-<p><a href="cycle_metrics.csv">逐周期数据</a> · <a href="frame_tracks.csv">逐帧数据</a> · <a href="normalized_curves.csv">标准化曲线</a> · <a href="manifest.json">参数与来源</a></p></html>'''
+<p><a href="limb_sequence.pdf">姿态图 PDF</a> · <a href="phase_velocity.pdf">速度相位图 PDF</a> ·
+<a href="phase_frames.csv">逐帧速度与相位</a> · <a href="phase_events.csv">相位边界</a> ·
+<a href="cycle_metrics.csv">逐周期数据</a> · <a href="frame_tracks.csv">逐帧数据</a> · <a href="normalized_curves.csv">标准化曲线</a> · <a href="manifest.json">参数与来源</a></p></html>'''
         (folder/'report.html').write_text(report,encoding='utf-8')
         progress(f'完成：{folder}')
         return folder

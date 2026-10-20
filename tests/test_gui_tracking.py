@@ -38,6 +38,20 @@ spec=w.spec();w.apply_spec(spec)
 assert w.spec()==spec
 w.engine.setCurrentIndex(0)
 assert w.protocol.itemData(1)=='suspended'
+import mouselimblab.gui as gui
+gui.video_info=lambda p:dict(video_fps=30,frame_count=180)
+w.show_frame=lambda n:None
+w.coordinates='previous.csv';w.phase_events_path='previous_events.csv'
+w.seeds={'hip':[1,2]};w.target='foot'
+w.set_video('next.mp4',reset=True)
+assert w.coordinates==w.phase_events_path==''
+assert w.seeds=={} and w.target is None and w.result is None
+class Busy:
+    def isRunning(self):return True
+w.worker=Busy();errors=[];w.error=errors.append
+w.start();w.save_phases()
+assert len(errors)==2 and all('尚未完成' in message for message in errors)
+w.worker=None
 w.close()
 '''
     result=subprocess.run([sys.executable,'-c',script],capture_output=True,text=True,env={**os.environ,'QT_QPA_PLATFORM':'minimal'},timeout=30)
@@ -57,12 +71,14 @@ def test_gui_video_analysis_exports_images_and_full_overlay(tmp_path):
         env={**os.environ,'QT_QPA_PLATFORM':'offscreen','OPENBLAS_NUM_THREADS':'2'})
     assert result.returncode==0,result.stdout+result.stderr
     manifests=list((tmp_path/'results').glob('*/manifest.json'))
-    assert len(manifests)==1
+    assert len(manifests)==2
     manifest=json.loads(manifests[0].read_text())
     assert manifest['state']=='complete' and manifest['summary']['frame_count']==180
     folder=manifests[0].parent
     for name in ('signals.png','signals.pdf','cycles.png','cycles.pdf',
-                 'trajectories.png','trajectories.pdf','report.html'):
+                 'trajectories.png','trajectories.pdf','report.html',
+                 'limb_sequence.png','limb_sequence.pdf','phase_velocity.png',
+                 'phase_velocity.pdf','phase_frames.csv'):
         assert (folder/name).stat().st_size>0,name
     cap=open_video(folder/'overlay.mp4');frames=0
     try:

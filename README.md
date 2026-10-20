@@ -3,7 +3,7 @@
 Desktop software for mouse hindlimb tracking and kinematics, by **Youwei Chen**.
 Track paint markers, switch between four-point and ALMA six-point analysis, review tracks and cycles, and export animal-level summaries. DeepLabCut annotation and training are available in the same interface.
 
-**[Download v1.1.3](https://github.com/Youweichen9155/Mouse-Limb-Movement-Behaviour-Analysis-Tool/releases/tag/v1.1.3)** · [中文使用说明](docs/USER_GUIDE_ZH.md) · [DeepLabCut 训练](docs/DEEPLABCUT_ZH.md) · [Test record](docs/VALIDATION.md)
+**[Download v1.1.4](https://github.com/Youweichen9155/Mouse-Limb-Movement-Behaviour-Analysis-Tool/releases/tag/v1.1.4)** · [中文使用说明](docs/USER_GUIDE_ZH.md) · [DeepLabCut 训练](docs/DEEPLABCUT_ZH.md) · [Test record](docs/VALIDATION.md)
 
 ## Download and start / 下载与启动
 
@@ -11,9 +11,9 @@ Download the corresponding ZIP and extract it completely. Desktop packages inclu
 
 | Computer | Download | Start |
 |---|---|---|
-| Apple Silicon Mac (M series), macOS 14+ | `MouseLimbLab_Mac_arm64_1.1.3.zip` | Open `MouseLimbLab.app` |
-| Windows x64 | `MouseLimbLab_Windows_x64_1.1.3.zip` | Open `MouseLimbLab.exe` |
-| Source / Intel Mac | `MouseLimbLab_Source_1.1.3.zip` | Python 3.12; see below |
+| Apple Silicon Mac (M series), macOS 14+ | `MouseLimbLab_Mac_arm64_1.1.4.zip` | Open `MouseLimbLab.app` |
+| Windows x64 | `MouseLimbLab_Windows_x64_1.1.4.zip` | Open `MouseLimbLab.exe` |
+| Source / Intel Mac | `MouseLimbLab_Source_1.1.4.zip` | Python 3.12; see below |
 
 On Windows, keep the EXE and `_internal` folder together. If macOS prompts on first launch, allow the application in **System Settings → Privacy & Security**. Checksums are included on the release page.
 
@@ -26,7 +26,7 @@ On Windows, keep the EXE and `_internal` folder together. If macOS prompts on fi
 | Landmarks | Hip, knee, ankle, foot marker | Iliac crest, hip, knee, ankle, MTP, toe |
 | Input | Paint-marked video with four initial clicks, or framewise coordinates | Six-point coordinates, including DLC CSV |
 | Recording | Treadmill or suspended hindlimb movement | Treadmill or spontaneous walking |
-| Cycle detection | Project-specific detector | Pinned upstream ALMA functions |
+| Cycle detection | Foot velocity reversals; original position method selectable | Pinned upstream ALMA functions |
 | Output | Angles, ROM, normalized curves and applicable contact/clearance measures | ALMA parameters and a separate review table |
 
 Each method produces its own result folder. For ALMA, label the anatomical MTP and toe as separate points. The [user guide](docs/USER_GUIDE_ZH.md) explains each method's angle definitions and settings.
@@ -41,6 +41,14 @@ Each method produces its own result folder. For ALMA, label the anatomical MTP a
 
 Outputs include framewise CSV, cycle tables, PNG/PDF figures, an HTML report and optional overlay video. Source frame numbers and missing-data flags are preserved. Each run saves results in a new folder.
 
+## Limb sequences and gait phases
+
+Analysis exports a red/black stick sequence (swing/stance), signed forward velocity
+and speed curves, and framewise phase/event tables. The four-point method detects
+sustained foot velocity reversals relative to the hip. Edit event frames in the
+review table and apply them to generate a new result folder. ALMA retains its
+official events. The window stays open after every analysis.
+
 ## DeepLabCut training
 
 The third tab supports frame sampling, six-point annotation, animal-separated train/test sets, training, evaluation and prediction. Train a model from your labelled recordings and send its predicted coordinates to either analysis method.
@@ -49,9 +57,9 @@ Install the separate training environment with `Install_DeepLabCut_Mac.command` 
 
 ## Testing
 
-Mac ARM64 and Windows x64 passed **34 automated tests**, plus native startup, synthetic analysis/export and Chinese GUI checks. Local Mac testing also processed **8 paint-marked recordings containing 7,809 source frames**.
+The suite contains **40 automated tests**, plus native startup, synthetic analysis/export and Chinese GUI checks on Mac ARM64 and Windows x64. Local Mac testing also processed **8 paint-marked recordings containing 7,809 source frames**.
 
-The [test record](docs/VALIDATION.md) documents the sampled track review, cycle selection, DLC checks and tested environments. Version 1.1.3 fixes a Mac crash during GUI chart export and tests the full button-to-export workflow, including overlay video decoding.
+The [test record](docs/VALIDATION.md) documents the sampled track review, cycle selection, DLC checks and tested environments. Version 1.1.4 adds phase-coloured limb sequences, velocity curves and editable phase boundaries. Native checks run two consecutive analyses in the same window and decode the overlay video.
 
 ## Run from source
 

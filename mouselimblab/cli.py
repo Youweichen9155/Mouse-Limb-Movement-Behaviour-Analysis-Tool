@@ -6,7 +6,7 @@ from .workflow import run_clip,summarize_reviewed
 
 def load_project(path):
     path=Path(path).resolve();spec=json.loads(path.read_text(encoding='utf-8'))
-    for key in ('video','coordinates','corrections'):
+    for key in ('video','coordinates','corrections','phase_events'):
         if spec.get(key):
             p=Path(spec[key]).expanduser()
             spec[key]=str((path.parent/p).resolve() if not p.is_absolute() else p)

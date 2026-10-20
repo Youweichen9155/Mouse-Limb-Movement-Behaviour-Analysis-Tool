@@ -6,6 +6,7 @@ from scipy.ndimage import median_filter
 from scipy.signal import savgol_filter
 from .tracking import (JOINTS, interpolate_short_gaps, angle_deg, robust_cv,
                        robust_scale, find_candidate_cycles)
+from .phases import velocity_cycles, manual_events, add_phase_columns
 
 @dataclass
 class Settings:
@@ -23,6 +24,7 @@ class Settings:
     alma_drag_clearance_cm: float = 0.1
     step_height_max_cm: float = 1.5
     stride_length_max_cm: float = 8.0
+    phase_method: str = 'velocity'
 
     def validate(self, engine="local"):
         if self.protocol not in (('treadmill', 'suspended') if engine == 'local' else ('treadmill', 'spontaneous')):
@@ -48,6 +50,8 @@ class Settings:
                 raise ValueError('ALMA 拖曳阈值和步长/步高筛选上限无效。')
         if self.direction not in ('auto','positive','negative'):
             raise ValueError('行走方向无效。')
+        if self.phase_method not in ('velocity', 'position'):
+            raise ValueError('请选择足端速度或位移峰谷识别相位。')
 
 def finite_runs(valid):
     edges = np.diff(np.r_[False, np.asarray(valid, bool), False].astype(int))
@@ -81,7 +85,7 @@ CYCLE_COLUMNS = ['cycle_id', 'source_frame_start', 'source_frame_transition', 's
     'cycle_duration_video_s', 'cycle_duration_real_s', 'duty_factor', 'stance_swing_ratio',
     'peak_clearance_pct_shank', 'swing_drag_pct']
 
-def analyse(table, settings):
+def analyse(table, settings, phase_events=None):
     settings.validate()
     if len(table) < 20:
         raise ValueError('至少需要 20 帧才能进行周期分析。')
@@ -122,15 +126,29 @@ def analyse(table, settings):
     for name, (a, b, c) in angles.items():
         work[name] = angle_deg(points[a], points[b], points[c])
     xrel = points['foot'][:, 0] - points['hip'][:, 0]
+    if settings.phase_method == 'velocity':
+        # Subtract body motion before the nonlinear median filter so that
+        # translation of the mouse/camera cannot change relative foot velocity.
+        xrel = smooth_segmented(work.foot_x_px_interpolated - work.hip_x_px_interpolated, settings)
+    work['foot_height_relative_to_hip_px'] = smooth_segmented(
+        work.hip_y_px_interpolated - work.foot_y_px_interpolated, settings)
     work['foot_x_relative_to_hip_px'] = xrel
     raw_clearance = settings.ground_y_px - points['foot'][:, 1] if settings.protocol == 'treadmill' else None
     events = []
     signs = []
+    work['swing_direction_sign'] = np.nan
+    if settings.phase_method == 'velocity':
+        work['velocity_phase_state'] = 0
     for a, b in finite_runs(valid):
         if b - a < 20:
             continue
-        local, sign, _ = find_candidate_cycles(xrel[a:b], settings.video_fps, raw_clearance[a:b] if raw_clearance is not None else None)
-        if settings.direction != 'auto':
+        hint = raw_clearance[a:b] if raw_clearance is not None else None
+        if settings.phase_method == 'velocity':
+            local, sign, info = velocity_cycles(xrel[a:b], settings.video_fps, hint, settings.direction)
+            work.loc[work.index[a:b], 'velocity_phase_state'] = info['states']
+        else:
+            local, sign, _ = find_candidate_cycles(xrel[a:b], settings.video_fps, hint)
+        if settings.phase_method == 'position' and settings.direction != 'auto':
             sign = 1 if settings.direction == 'positive' else -1
             from scipy.signal import find_peaks
             oriented = xrel[a:b] * sign
@@ -139,7 +157,10 @@ def analyse(table, settings):
             local = [(int(s), int(s + np.argmin(oriented[s:e+1])), int(e)) for s, e in zip(peaks[:-1], peaks[1:])]
             local = [(s,t,e) for s,t,e in local if t-s >= 3 and e-t >= 3]
         signs.append(sign)
+        work.loc[work.index[a:b], 'swing_direction_sign'] = sign
         events.extend((a+s, a+t, a+e) for s,t,e in local)
+    if phase_events is not None:
+        events = manual_events(phase_events, frames, valid)
     # Ground baseline comes only from candidates with sufficient raw coverage.
     stance = []
     for s, t, e in events:
@@ -211,8 +232,10 @@ def analyse(table, settings):
                'drag_threshold_pct_shank':threshold/shank*100,
                'timing':'capture_fps_confirmed' if settings.capture_fps else 'video_time_only',
                'directions_per_valid_segment':','.join(map(str,signs)),
+               'phase_method':'manual' if phase_events is not None else settings.phase_method,
                'engine':'local'}
     accepted = cycle_table.loc[cycle_table.automatic_include.astype(bool)]
     for col in ('knee_rom_p95_p5_deg','ankle_rom_p95_p5_deg','duty_factor','stance_swing_ratio','peak_clearance_pct_shank','swing_drag_pct'):
         summary[col+'_mean'] = pd.to_numeric(accepted[col],errors='coerce').mean()
+    work = add_phase_columns(work, cycle_table, settings, summary['phase_method'])
     return work, cycle_table, curve_table, summary
