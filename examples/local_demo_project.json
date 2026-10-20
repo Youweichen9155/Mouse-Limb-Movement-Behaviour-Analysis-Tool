@@ -1,0 +1,13 @@
+{
+  "engine": "local",
+  "coordinates": "synthetic_tracks.csv",
+  "settings": {
+    "protocol": "treadmill",
+    "video_fps": 30,
+    "capture_fps": 30,
+    "ground_y_px": 220
+  },
+  "animal_id": "SYNTHETIC",
+  "group": "software_test",
+  "trial_id": "1"
+}

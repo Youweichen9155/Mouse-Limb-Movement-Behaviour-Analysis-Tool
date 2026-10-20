@@ -1,0 +1,14 @@
+{
+  "engine": "alma",
+  "coordinates": "alma_official_demo.csv",
+  "side": "unsided",
+  "likelihood": 0.5,
+  "animal_id": "OFFICIAL_DEMO",
+  "group": "software_validation_only",
+  "trial_id": "1",
+  "settings": {
+    "protocol": "treadmill", "video_fps": 120, "capture_fps": 120,
+    "belt_cm_s": 30, "cutoff_hz": 6, "direction": "negative"
+  },
+  "note": "120 fps is an explicit software-test parameter, not verified acquisition metadata. Do not interpret this demo as biological results."
+}

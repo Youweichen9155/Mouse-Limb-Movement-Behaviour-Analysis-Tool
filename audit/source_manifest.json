@@ -1,0 +1,27 @@
+[
+  {
+    "source": "analyze_video.py",
+    "file": "analyze_video.py",
+    "sha256": "7eb3c3de0287d7fe4bb31b9b326a269ddd797f8a44cde5aeb0ebc0da92e45583"
+  },
+  {
+    "source": "analyze_video_v2.py",
+    "file": "analyze_video_v2.py",
+    "sha256": "6f690c0eb960a1151988c2357eb9eff7398ba30f4030e67a97bc30dcb6e29b2d"
+  },
+  {
+    "source": "analyze_mouse_hindlimb_kinematics_v1.py",
+    "file": "analyze_mouse_hindlimb_kinematics_v1.py",
+    "sha256": "bee24f79734c6580de9a1e5e1702a0d8dcc954e6e1158dc9efd25200f4d56d13"
+  },
+  {
+    "source": "train_mouse_hindlimb_markerless_pose_pilot.py",
+    "file": "train_mouse_hindlimb_markerless_pose_pilot.py",
+    "sha256": "b6f4d96deb0093d5e696e9e706d6d28be0276bf2a56a950690006ee53db74223"
+  },
+  {
+    "source": "evaluate_mouse_hindlimb_markerless_colour_removal.py",
+    "file": "evaluate_mouse_hindlimb_markerless_colour_removal.py",
+    "sha256": "ff83a8d14015168550c023e347308a9146d1a5499474d3931b2555bca7198e88"
+  }
+]
