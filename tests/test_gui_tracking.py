@@ -1,0 +1,44 @@
+import os
+os.environ.setdefault('QT_QPA_PLATFORM','minimal')
+import cv2
+import numpy as np
+from types import SimpleNamespace
+from mouselimblab.tracking import JOINTS,track_video
+
+def test_video_tracking_keeps_frame_numbers_during_missing_marker(tmp_path):
+    p=tmp_path/'markers.avi'
+    writer=cv2.VideoWriter(str(p),cv2.VideoWriter_fourcc(*'MJPG'),30,(640,480))
+    assert writer.isOpened()
+    points=[(100,100),(200,150),(300,200),(400,250)]
+    colours=[(200,0,200),(0,220,0),(220,80,0),(0,160,255)]
+    for f in range(30):
+        frame=np.full((480,640,3),30,np.uint8)
+        for j,(point,colour) in enumerate(zip(points,colours)):
+            if not (j==3 and 12<=f<16):cv2.circle(frame,point,11,colour,-1)
+        writer.write(frame)
+    writer.release()
+    config=SimpleNamespace(clip_id='test',protocol='treadmill',seed_frame=0,seeds=dict(zip(JOINTS,points)))
+    table,meta=track_video(p,config)
+    assert len(table)==30
+    assert list(table.source_frame)==list(range(30))
+    assert table.loc[12:15,'foot_x_px'].isna().all()
+
+def test_gui_engine_switch_and_configuration_roundtrip():
+    # Test application startup in a fresh process, as launched by the user.
+    import subprocess,sys
+    script='''
+from PySide6.QtWidgets import QApplication
+from mouselimblab.gui import Window
+app=QApplication([])
+w=Window();w.engine.setCurrentIndex(1)
+assert w.protocol.itemData(1)=='spontaneous'
+assert not w.seed_buttons[0].isEnabled()
+w.capture_fps.setValue(240);w.belt.setValue(30)
+spec=w.spec();w.apply_spec(spec)
+assert w.spec()==spec
+w.engine.setCurrentIndex(0)
+assert w.protocol.itemData(1)=='suspended'
+w.close()
+'''
+    result=subprocess.run([sys.executable,'-c',script],capture_output=True,text=True,env={**os.environ,'QT_QPA_PLATFORM':'minimal'},timeout=30)
+    assert result.returncode==0,result.stderr

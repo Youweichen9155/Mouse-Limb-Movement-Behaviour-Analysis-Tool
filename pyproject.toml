@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mouselimblab"
+version = "1.1.1"
+description = "Mouse hindlimb analysis with independent project and ALMA engines"
+requires-python = ">=3.10,<3.13"
+license = {text = "GPL-3.0-only"}
+dynamic = ["dependencies"]
+
+[project.scripts]
+mouselimblab = "mouselimblab.cli:main"
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools.packages.find]
+include = ["mouselimblab*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
