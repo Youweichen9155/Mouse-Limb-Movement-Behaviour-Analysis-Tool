@@ -60,7 +60,7 @@ class DlcPanel(QWidget):
         row.addWidget(QLabel('每段均匀抽取帧数'));row.addWidget(self.count);row.addStretch()
         self.video_table = QTableWidget(0, 3);self.video_table.setHorizontalHeaderLabels(['视频路径', '动物编号', '用途'])
         self.video_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch);vl.addWidget(self.video_table)
-        note = QLabel('同一只动物的所有视频必须放在同一组；测试组应包含未参加训练的动物。抽帧后可补选模糊、拖曳、遮挡等困难画面。原视频保持不变。')
+        note = QLabel('按动物划分训练集和测试集，同一动物的视频放在同一组。抽帧后可追加模糊、拖曳或遮挡画面。')
         note.setWordWrap(True);vl.addWidget(note)
         row = QHBoxLayout();vl.addLayout(row)
         row.addWidget(self.button('创建新项目并抽帧…', self.extract))
@@ -80,7 +80,7 @@ class DlcPanel(QWidget):
         self.part.currentIndexChanged.connect(self.refresh_points)
         training = QWidget();tl=QVBoxLayout(training);self.steps.addTab(training,'③ 训练、评估与预测')
         form=QFormLayout();tl.addLayout(form)
-        self.net=QComboBox();self.net.addItem('ResNet-50（先验证流程）','resnet_50');self.net.addItem('ResNet-101（较慢）','resnet_101')
+        self.net=QComboBox();self.net.addItem('ResNet-50（默认）','resnet_50');self.net.addItem('ResNet-101（较慢）','resnet_101')
         self.device=QComboBox()
         for label,value in [('自动检测','auto'),('CPU','cpu'),('Apple GPU','mps'),('NVIDIA GPU','cuda:0')]:self.device.addItem(label,value)
         self.epochs=QSpinBox();self.epochs.setRange(1,10000);self.epochs.setValue(200)
@@ -88,7 +88,7 @@ class DlcPanel(QWidget):
         self.threshold=QDoubleSpinBox();self.threshold.setRange(0,1);self.threshold.setDecimals(2);self.threshold.setValue(.9)
         for title,control in [('模型结构',self.net),('计算设备',self.device),('本次训练轮数（epochs）',self.epochs),('每批画面数',self.batch),('评估/分析置信度阈值',self.threshold)]:form.addRow(title,control)
         self.resume=QCheckBox('从最新快照继续训练（追加上述轮数）');form.addRow(self.resume)
-        desc=QLabel('使用 DeepLabCut 3.0.2 / PyTorch。训练轮数与论文 TensorFlow 的迭代次数不等价。首次训练可能下载通用骨干网络权重；训练结束后必须检查独立动物的测试误差和叠加轨迹。')
+        desc=QLabel('准备数据 → 训练 → 评估 → 预测。结合独立动物的测试误差和叠加轨迹调整模型；首次训练需联网下载预训练权重。')
         desc.setWordWrap(True);tl.addWidget(desc)
         row=QHBoxLayout();tl.addLayout(row)
         for title,action in [('准备训练数据','prepare'),('开始训练','train'),('评估模型','evaluate'),('预测视频…','predict')]:row.addWidget(self.button(title,lambda checked=False,a=action:self.start_action(a)))
@@ -106,7 +106,7 @@ class DlcPanel(QWidget):
     def error(self, text):
         self.log.append(str(text));QMessageBox.warning(self,'DeepLabCut',str(text))
     def install_help(self):
-        QMessageBox.information(self,'首次安装训练环境','双击随包提供的 Install_DeepLabCut_Mac.command 或 Install_DeepLabCut_Windows.bat。\n需先安装 Python 3.10–3.12，首次安装需要联网。\n安装后环境位于用户目录 MouseLimbLab_DLC，点击“选择”指定其中 bin/python（Mac）或 Scripts/python.exe（Windows）。\n已有可用环境可以直接选择；本机若检测到环境会自动填写。')
+        QMessageBox.information(self,'首次安装训练环境','1. 安装 Python 3.12。\n2. 联网运行随包的 Install_DeepLabCut_Mac.command 或 Install_DeepLabCut_Windows.bat。\n3. 在本页选择用户目录 MouseLimbLab_DLC 内的 bin/python（Mac）或 Scripts/python.exe（Windows），点击“检查环境”。')
     def pick_python(self):
         path,_=QFileDialog.getOpenFileName(self,'选择 DeepLabCut 环境中的 Python')
         if path:self.python.setText(path);self.preferences.setValue('python',path)

@@ -39,6 +39,11 @@ def main():
     subprocess.run(['git','merge-base','--is-ancestor',a.commit,'origin/main'],check=True)
     version=tomllib.loads(Path('pyproject.toml').read_text())['project']['version']
     assert re.fullmatch(r'\d+\.\d+\.\d+',version)
+    # Check the instructions in each native archive against its tested commit.
+    doc_names=['README.md','开始使用.txt']
+    doc_names+=subprocess.check_output(['git','ls-tree','-r','--name-only',a.commit,'docs/'],text=True).splitlines()
+    expected_docs={name:subprocess.check_output(['git','show',f'{a.commit}:{name}']).decode('utf-8').replace('\r\n','\n')
+                   for name in doc_names}
     out=Path('publish-assets');out.mkdir(exist_ok=False)
     def one(name):
         matches=list(a.artifacts.rglob(name));assert len(matches)==1,(name,matches)
@@ -48,6 +53,7 @@ def main():
         assert info['version']==version and info['source_commit']==a.commit
         smoke=info['native_smoke_test']
         assert smoke['native_analysis']==smoke['native_gui']==smoke['chinese_font_glyphs']=='passed'
+        assert smoke['native_help']==smoke['native_dlc']=='passed'
         assert smoke['source_commit']==a.commit
         archive=one(f'MouseLimbLab_{label}_{version}.zip')
         with zipfile.ZipFile(archive) as z:
@@ -55,6 +61,9 @@ def main():
             embedded=json.loads(z.read(f'MouseLimbLab_{label}/BUILD_INFO.json'))
             assert embedded==info
             assert z.read(f'MouseLimbLab_{label}/LICENSES/NotoSansSC-OFL.txt')
+            for name,expected_text in expected_docs.items():
+                actual_text=z.read(f'MouseLimbLab_{label}/{name}').decode('utf-8').replace('\r\n','\n')
+                assert actual_text==expected_text,('Bundled instruction differs',label,name)
         shutil.copyfile(archive,out/archive.name);shutil.copyfile(meta,out/meta.name)
     sources=list(a.artifacts.rglob(f'MouseLimbLab_Source_{version}.zip'))
     assert len(sources)==2

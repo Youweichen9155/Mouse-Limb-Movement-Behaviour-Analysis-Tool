@@ -1,4 +1,8 @@
-# Validation record — v1.1.1
+# Validation record
+
+v1.1.2 updates interface text and bundled instructions. The native checks also
+capture the help and DeepLabCut pages. Real-video and training observations
+below were recorded for v1.1.1; analysis algorithms are unchanged.
 
 ## Real-video testing (2026-10-20)
 

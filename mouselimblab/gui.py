@@ -118,7 +118,16 @@ class Window(QMainWindow):
         self.correction_joint=QComboBox();self.correction_joint.addItems(['hip','knee','ankle','foot','mtp','crest'])
         correction=QHBoxLayout();correction.addWidget(QLabel('校正当前帧关节：'));correction.addWidget(self.correction_joint)
         correction.addWidget(self.button('去画面点击校正点',lambda:self.set_correction_target()));correction.addWidget(self.button('保存校正点并准备重分析',self.save_corrections));rv.addLayout(correction)
-        helptext=QTextEdit();helptext.setReadOnly(True);helptext.setHtml('''<h2>两种独立方法</h2><p><b>我们的代码</b>：四色标记追踪或四点坐标，支持跑台和悬空；按原始帧处理缺口，输出 ROM、标准化曲线及跑台接触指标。</p><p><b>ALMA</b>：导入六点 DLC CSV，调用作者完整运动学函数，支持跑台/自发行走；独立检测周期并输出官方参数表。实际采集帧率必填；跑台模式必须填跑带速度，自发行走必须填 px/cm。</p><p>视频均应为固定帧率、正立侧视。手机慢动作 240→30 导出：播放填 30，采集填 240。无法确认采集时间时，使用我们的代码生成角度/比例，真实秒数留空。</p><p>足端标记不一定是真正趾尖，不能伪造 MTP 和髂嵴。DLC CSV 由 DeepLabCut 模型生成。第 3 页提供六点标注、训练与预测；训练环境独立安装，模型需用本地视频标注和验证。</p><p>自动周期需要人工复核。每次运行新建结果目录。组间分析先鼠内汇总，并保留引擎和实验类型分组；请勿混用两个引擎的踝角。</p><p>ALMA 原文：<a href="https://doi.org/10.1038/s42003-022-03077-6">Communications Biology (2022)</a>；代码固定至 47703fc。程序及第三方说明见随附 README。</p>''');self.tabs.addTab(helptext,'3  使用说明')
+        helptext=QTextEdit();helptext.setReadOnly(True);helptext.setHtml('''<h2>开始使用</h2>
+<p><b>颜料追踪</b>：打开视频，选择“我们的代码”，在首帧点击髋、膝、踝、足端；跑台视频再设置地面参考线。填写录制参数后点击“开始分析”。</p>
+<p><b>ALMA 六点分析</b>：导入髂嵴、髋、膝、踝、跖趾关节（MTP）、趾尖六点 CSV，选择跑台或自发行走。填写实际采集帧率；跑台填写跑带速度，自发行走填写 px/cm。</p>
+<p><b>DeepLabCut</b>：第 3 页支持抽帧、六点标注、训练、评估和预测。安装随包提供的训练环境，用自己的视频标注训练模型，再将预测送入所选分析方法。</p>
+<p><b>查看结果</b>：检查叠加轨迹，按需校正坐标并重分析。在“周期与轨迹复核”中填 1 纳入、0 排除，保存后按动物汇总。每次分析生成新的结果文件夹。</p>
+<h3>录制参数</h3>
+<p>使用固定机位、正立侧视、固定帧率的视频。播放帧率由视频读取，实际采集帧率按录制设置填写。例如 240 fps 慢动作以 30 fps 导出：播放填 30，采集填 240。</p>
+<h3>方法与输出</h3>
+<p>四点方法支持跑台和悬空，输出角度、ROM 和标准化曲线；ALMA 支持跑台和自发行走，另附官方参数表。两种方法按各自定义计算，结果按引擎和实验类型汇总。</p>
+<p>完整说明见随包 docs/USER_GUIDE_ZH.md；训练说明见 docs/DEEPLABCUT_ZH.md。<a href="https://doi.org/10.1038/s42003-022-03077-6">ALMA 原文</a>与第三方许可见 README。</p>''');self.tabs.addTab(helptext,'3  使用说明')
         self.engine_changed()
         from .dlc_gui import DlcPanel
         self.dlc_panel=DlcPanel(Canvas)
@@ -136,7 +145,7 @@ class Window(QMainWindow):
             self.engine.setCurrentIndex(self.engine.findData(engine));self.side.setCurrentIndex(0);self.conf.setValue(likelihood)
             self.capture_fps.setValue(0);self.belt.setValue(0);self.scale.setValue(0)
             self.tracks=tracks.set_index('source_frame');self.show_frame(0)
-            self.hint.setText('已载入 DeepLabCut 六点预测。请填写此视频的实际采集帧率和跑带速度/标尺，再分析并复核轨迹。')
+            self.hint.setText('六点预测已载入。填写本视频的采集帧率、跑带速度或标尺后，点击“开始分析”。')
             self.tabs.setCurrentIndex(0)
         except Exception as e:self.error(e)
     def button(self,label,fn):
@@ -147,7 +156,7 @@ class Window(QMainWindow):
     def engine_changed(self):
         alma=self.engine.currentData()=='alma';self.protocol.clear();self.protocol.addItem('跑台行走','treadmill')
         self.protocol.addItem('自发行走' if alma else '悬空后肢运动','spontaneous' if alma else 'suspended')
-        self.mode_note.setText('ALMA 独立引擎：需六点 CSV；跑台模式按跑带速度估算空间尺度。' if alma else '我们的独立引擎：四色标记追踪或四点 CSV。')
+        self.mode_note.setText('导入六点 CSV；跑台填写速度，自发行走填写标尺。' if alma else '首帧选择四个颜料标记，或导入四点 CSV。')
         for b in self.seed_buttons:b.setEnabled(not alma)
         for w in (self.cutoff,self.drag,self.drag_frames,self.max_height,self.max_stride):w.setEnabled(alma)
         self.ground.setEnabled(not alma);self.ground_set.setEnabled(not alma)
@@ -261,7 +270,7 @@ class Window(QMainWindow):
             for c,col in enumerate(df.columns):
                 if col in ('manual_include','review_note'):df.loc[r,col]=self.table.item(r,c).text().strip()
         if not df.manual_include.astype(str).isin(['','0','1','0.0','1.0']).all():return self.error('纳入列只接受 1、0 或空白。')
-        if ((df.manual_include.astype(str).isin(['1','1.0']))&~df.automatic_include.eq(True)).any():return self.error('自动排除周期不能直接纳入；请先修正坐标并重分析。')
+        if ((df.manual_include.astype(str).isin(['1','1.0']))&~df.automatic_include.eq(True)).any():return self.error('该周期已自动排除。修正坐标并重新分析后，再选择纳入。')
         df.to_csv(self.result/'cycle_review.csv',index=False);self.review=df;self.log.append('已保存周期复核。')
     def jump_cycle(self,r,c):
         if self.review is not None:
