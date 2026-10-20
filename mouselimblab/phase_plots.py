@@ -57,7 +57,7 @@ def plot_phases(work, cycles, settings, folder, engine='local'):
         ax.set_ylabel(f'{title} ({unit})')
         ax.spines[['top', 'right']].set_visible(False)
     axes[0].axhline(0, color='#8a929e', lw=.4)
-    axes[0].legend(handles=phase_legend(settings), frameon=False, ncol=3, loc='upper right')
+    fig.legend(handles=phase_legend(settings), frameon=False, ncol=3, loc='outside upper center')
     axes[0].set_title('Foot relative to hip', fontsize=10, loc='left')
     axes[-1].set_xlabel('Original source frame')
     save(fig, folder, 'phase_velocity')
