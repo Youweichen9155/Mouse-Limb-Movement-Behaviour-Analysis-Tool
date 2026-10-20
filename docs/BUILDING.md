@@ -27,5 +27,6 @@ After both platform jobs pass and the tested commit is merged into main, run
 `Publish verified desktop release` from main with that Desktop CI run ID and
 its exact commit. The publisher verifies the successful run, commit ancestry,
 native checks, Chinese glyph checks, ZIP integrity and matching source contents.
-It uploads all packages to a draft and publishes it as a research preview only
-after uploads succeed. An existing release is never overwritten automatically.
+It uploads all packages to a draft and publishes the release after uploads
+succeed. The native checks also run a full analysis through the GUI worker and
+decode every exported overlay-video frame. An existing release is never overwritten automatically.

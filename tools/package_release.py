@@ -65,7 +65,7 @@ def main():
         info={'version':__version__,'source_commit':commit,'platform':platform.platform(),
               'machine':platform.machine(),'python':platform.python_version(),'dependencies':dependencies,
               'source_url':'https://github.com/Youweichen9155/Mouse-Limb-Movement-Behaviour-Analysis-Tool',
-              'native_smoke_test':smoke,'research_preview':True}
+              'native_smoke_test':smoke}
         (folder/'BUILD_INFO.json').write_text(json.dumps(info,indent=2)+'\n',encoding='utf-8')
         target=out/f'MouseLimbLab_{label}_{__version__}.zip'
         if sys.platform=='darwin':

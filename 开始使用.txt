@@ -1,4 +1,4 @@
-MouseLimbLab 1.1.2 · 小鼠后肢运动分析
+MouseLimbLab 1.1.3 · 小鼠后肢运动分析
 
 启动
 完整解压后，Mac 打开 MouseLimbLab.app，Windows 打开 MouseLimbLab.exe。

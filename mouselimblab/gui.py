@@ -53,6 +53,9 @@ class Worker(QThread):
     progress=Signal(str);done=Signal(str);failed=Signal(str)
     def __init__(self,spec,root):
         super().__init__();self.spec=spec;self.root=root;self.cancelled=threading.Event()
+        # OpenBLAS matrix inversion used by Matplotlib can exceed macOS's
+        # default worker-thread stack. Match the 8 MiB main-thread budget.
+        self.setStackSize(8*1024*1024)
     def run(self):
         try:self.done.emit(str(run_clip(self.spec,self.root,self.progress.emit,self.cancelled.is_set)))
         except Exception:self.failed.emit(traceback.format_exc())
@@ -112,7 +115,7 @@ class Window(QMainWindow):
         self.log=QTextEdit();self.log.setReadOnly(True);self.log.setMaximumHeight(150);right.addWidget(self.log)
         reviewpage=QWidget();rv=QVBoxLayout(reviewpage);self.tabs.addTab(reviewpage,'2  周期与轨迹复核')
         toolbar=QHBoxLayout();rv.addLayout(toolbar)
-        for label,fn in [('打开已有结果…',self.open_result),('保存周期复核',self.save_review),('打开分析报告',self.open_report),('按动物汇总…',self.aggregate)]:toolbar.addWidget(self.button(label,fn))
+        for label,fn in [('打开已有结果…',self.open_result),('保存周期复核',self.save_review),('打开结果文件夹',self.open_result_folder),('打开分析报告',self.open_report),('按动物汇总…',self.aggregate)]:toolbar.addWidget(self.button(label,fn))
         tip=QLabel('纳入：1＝确认纳入，0＝排除，空白＝未复核。双击周期行跳到原始视频对应帧；复核结果按引擎分别保存。');tip.setWordWrap(True);rv.addWidget(tip)
         self.table=QTableWidget();self.table.cellDoubleClicked.connect(self.jump_cycle);rv.addWidget(self.table)
         self.correction_joint=QComboBox();self.correction_joint.addItems(['hip','knee','ankle','foot','mtp','crest'])
@@ -244,7 +247,8 @@ class Window(QMainWindow):
     def cancel(self):
         if self.worker:self.worker.cancelled.set();self.log.append('已请求取消，当前计算结束后停止。')
     def finished(self,folder):
-        self.run_button.setEnabled(True);self.cancel_button.setEnabled(False);self.load_result(folder);self.log.append('分析完成，可打开报告并逐周期复核。')
+        self.run_button.setEnabled(True);self.cancel_button.setEnabled(False);self.load_result(folder);self.log.append(f'分析完成：{folder}')
+        self.hint.setText('分析完成。在“周期与轨迹复核”中打开结果文件夹或分析报告。')
     def failed(self,text):
         self.run_button.setEnabled(True);self.cancel_button.setEnabled(False);self.log.append(text);self.error(text.splitlines()[-1])
     def open_result(self):
@@ -287,6 +291,8 @@ class Window(QMainWindow):
         self.csv_label.setText('已加载本次轨迹及校正点');self.edits=[];self.tabs.setCurrentIndex(0);self.log.append('校正已保存。点击开始分析，生成新的独立结果目录。')
     def open_report(self):
         if self.result:QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.result/'report.html')))
+    def open_result_folder(self):
+        if self.result:QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.result)))
     def aggregate(self):
         files,_=QFileDialog.getOpenFileNames(self,'选择各试次结果中的 project.json',self.out.text(),'JSON (*.json)')
         if not files:return

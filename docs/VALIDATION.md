@@ -1,5 +1,25 @@
 # Validation record
 
+## v1.1.3 GUI export fix (2026-10-20)
+
+Two user crash reports on Mac identified an OpenBLAS matrix inversion failure
+in the analysis QThread while Matplotlib was drawing event lines. The saved
+CSV tables were complete; PNG/PDF and overlay exports had not started. A source
+reproduction using the same tables exited with SIGBUS on the default QThread
+stack. Giving the worker an 8 MiB stack completed chart export.
+
+The full GUI workflow was rerun on the reported 926-frame paint-marked video,
+including tracking, PNG/PDF, HTML report, result-table loading and MP4 export.
+The exported video was checked by decoding all frames. Original inputs and
+previous run folders were preserved.
+
+The suite now has 34 tests, including a subprocess that clicks the real GUI
+analysis button on a synthetic marker video. Native Mac and Windows checks
+repeat that workflow and decode all 180 output frames. Earlier CLI analysis
+and static GUI checks did not exercise this background-thread export path.
+
+## v1.1.2
+
 v1.1.2 updates interface text and bundled instructions. The native checks also
 capture the help and DeepLabCut pages. Real-video and training observations
 below were recorded for v1.1.1; analysis algorithms are unchanged.
@@ -27,7 +47,7 @@ metadata was unavailable.
 
 ## Automated checks
 
-33 tests passed on Mac ARM64 and Windows x64, covering frame preservation, missing
+The v1.1.1/v1.1.2 builds passed 33 tests on Mac ARM64 and Windows x64, covering frame preservation, missing
 markers, long gaps, capture/playback timing, suspended exclusions, stationary
 clips, explicit cycle approval, independent engines, upstream ALMA equivalence,
 annotation persistence, animal-separated splits, GUI handoff, video rotation and

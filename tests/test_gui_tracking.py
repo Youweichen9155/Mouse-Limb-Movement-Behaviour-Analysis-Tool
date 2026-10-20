@@ -42,3 +42,32 @@ w.close()
 '''
     result=subprocess.run([sys.executable,'-c',script],capture_output=True,text=True,env={**os.environ,'QT_QPA_PLATFORM':'minimal'},timeout=30)
     assert result.returncode==0,result.stderr
+
+def test_gui_video_analysis_exports_images_and_full_overlay(tmp_path):
+    import json
+    import subprocess
+    import sys
+    from mouselimblab.demo import make_video_demo
+    from mouselimblab.video import open_video
+    make_video_demo(tmp_path/'input')
+    result=subprocess.run(
+        [sys.executable,'-m','mouselimblab','gui-run-smoke',str(tmp_path/'input/video_project.json'),
+         '--output',str(tmp_path/'results'),'--screenshot',str(tmp_path/'completed.png')],
+        capture_output=True,text=True,timeout=120,
+        env={**os.environ,'QT_QPA_PLATFORM':'offscreen','OPENBLAS_NUM_THREADS':'2'})
+    assert result.returncode==0,result.stdout+result.stderr
+    manifests=list((tmp_path/'results').glob('*/manifest.json'))
+    assert len(manifests)==1
+    manifest=json.loads(manifests[0].read_text())
+    assert manifest['state']=='complete' and manifest['summary']['frame_count']==180
+    folder=manifests[0].parent
+    for name in ('signals.png','signals.pdf','cycles.png','cycles.pdf',
+                 'trajectories.png','trajectories.pdf','report.html'):
+        assert (folder/name).stat().st_size>0,name
+    cap=open_video(folder/'overlay.mp4');frames=0
+    try:
+        while cap.read()[0]:frames+=1
+    finally:
+        cap.release()
+    assert frames==180
+    assert (tmp_path/'completed.png').read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
