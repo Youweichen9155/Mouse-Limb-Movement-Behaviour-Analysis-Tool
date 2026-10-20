@@ -24,6 +24,10 @@ Qt/PySide6 is dynamically loaded. LGPL and Qt exception texts are in `LICENSES/Q
 
 The native packages include CPython 3.12; the exact interpreter version is recorded in BUILD_INFO.json. Its license is included in LICENSES/PYTHON.txt. No registry edits or system Python installation are required for the desktop application.
 
-## DeepLabCut training integration (1.1)
+## User-interface font
+
+The unmodified Noto Sans SC variable font is bundled so Chinese labels remain readable on systems without Chinese fonts. Source: https://github.com/google/fonts/tree/main/ofl/notosanssc . Copyright and SIL Open Font License 1.1 are retained in `LICENSES/NotoSansSC-OFL.txt`. This font retains its own license.
+
+## Optional DeepLabCut environment
 
 The native desktop package does not embed DeepLabCut or PyTorch. The optional installer installs DeepLabCut 3.0.2 in an isolated user environment, together with its upstream license files. The application calls its documented Python API in a separate process. No trained mouse-specific model is bundled. See https://github.com/DeepLabCut/DeepLabCut and docs/DEEPLABCUT_ZH.md.

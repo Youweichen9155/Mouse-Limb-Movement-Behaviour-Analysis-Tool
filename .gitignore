@@ -170,3 +170,6 @@ native-validation/
 packaging/
 .DS_Store
 *.zip
+downloaded/
+publish-assets/
+release-notes.md

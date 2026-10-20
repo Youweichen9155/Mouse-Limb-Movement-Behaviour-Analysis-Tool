@@ -11,7 +11,7 @@ import pandas as pd
 from .qt_runtime import prepare
 prepare()
 from PySide6.QtCore import Qt, QThread, Signal, QUrl, QTimer
-from PySide6.QtGui import QImage,QPixmap,QPainter,QColor,QPen,QDesktopServices
+from PySide6.QtGui import QImage,QPixmap,QPainter,QColor,QPen,QDesktopServices,QFont,QFontDatabase
 from PySide6.QtWidgets import (QApplication,QMainWindow,QWidget,QVBoxLayout,QHBoxLayout,QFormLayout,
     QPushButton,QLabel,QLineEdit,QComboBox,QDoubleSpinBox,QSpinBox,QCheckBox,QFileDialog,QMessageBox,
     QTabWidget,QSplitter,QScrollArea,QSlider,QTableWidget,QTableWidgetItem,QTextEdit,QHeaderView)
@@ -292,8 +292,17 @@ class Window(QMainWindow):
             self.cancel();event.ignore();self.hint.setText('正在停止运行，请稍后再次关闭。')
         else:event.accept()
 
-def main():
-    app=QApplication.instance() or QApplication(sys.argv);app.setStyle('Fusion')
+def create_application(argv=None):
+    app=QApplication.instance() or QApplication(argv or []);app.setStyle('Fusion')
+    font_path=Path(__file__).parent/'assets'/'NotoSansSC[wght].ttf'
+    font_id=QFontDatabase.addApplicationFont(str(font_path))
+    families=QFontDatabase.applicationFontFamilies(font_id)
+    if not families:raise RuntimeError('Bundled Chinese font could not be loaded.')
+    app.setFont(QFont(families[0],10))
     app.setStyleSheet('QMainWindow{background:#f3f6fa} QPushButton{padding:7px 10px} QLineEdit,QComboBox,QSpinBox,QDoubleSpinBox{min-height:26px} QTabBar::tab{padding:10px 18px} QLabel{color:#243045}')
+    return app
+
+def main():
+    app=create_application(sys.argv)
     window=Window();window.show()
     return app.exec()

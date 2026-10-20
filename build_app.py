@@ -23,6 +23,7 @@ cmd=[sys.executable,'-m','PyInstaller','--noconfirm','--clean','--windowed','--o
      '--add-data',str(root/'mouselimblab/dlc_project.py')+os.pathsep+'mouselimblab',
      '--add-data',str(root/'mouselimblab/video.py')+os.pathsep+'mouselimblab',
      '--add-data',str(root/'LICENSES')+os.pathsep+'LICENSES',
+     '--add-data',str(root/'mouselimblab/assets')+os.pathsep+'mouselimblab/assets',
      '--add-data',str(root/'THIRD_PARTY_NOTICES.md')+os.pathsep+'.','launch.py']
 subprocess.run(cmd,check=True)
 if sys.platform=='darwin':

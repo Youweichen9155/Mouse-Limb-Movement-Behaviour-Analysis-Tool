@@ -1,0 +1,41 @@
+name: Publish verified desktop release
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: Successful Desktop CI run containing both native packages
+        required: true
+        type: string
+      source_commit:
+        description: Exact 40-character commit built by Desktop CI and merged into main
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.build_run_id }}
+          pattern: MouseLimbLab-*
+          path: downloaded
+      - name: Verify packages and publish research preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RUN_ID: ${{ inputs.build_run_id }}
+          SOURCE_COMMIT: ${{ inputs.source_commit }}
+        run: python tools/publish_release.py --artifacts downloaded --run-id "$BUILD_RUN_ID" --commit "$SOURCE_COMMIT"

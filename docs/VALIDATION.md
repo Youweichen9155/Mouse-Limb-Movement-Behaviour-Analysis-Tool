@@ -35,6 +35,10 @@ annotation images, overlay export and the scoped external DLC reader.
 analysis and GUI screenshot on Windows x64 and Mac ARM64. Packages contain
 `BUILD_INFO.json` and `SMOKE_TEST.json` with the exact commit and platform.
 CI is not a biological validation or a Windows user-acceptance study.
+The screenshot check uses the same application setup and bundled Noto Sans SC
+font as ordinary startup, verifies Chinese/Latin/digit glyphs, and uses the
+native Windows Qt backend. Mac CI uses offscreen rendering; normal Cocoa
+startup was additionally checked locally.
 
 ## DeepLabCut and distribution limits
 

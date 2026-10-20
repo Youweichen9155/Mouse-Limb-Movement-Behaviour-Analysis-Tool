@@ -19,5 +19,8 @@ dependencies = {file = ["requirements.txt"]}
 [tool.setuptools.packages.find]
 include = ["mouselimblab*"]
 
+[tool.setuptools.package-data]
+mouselimblab = ["assets/*.ttf"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
