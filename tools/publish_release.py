@@ -56,7 +56,8 @@ def main():
         assert smoke['native_help']==smoke['native_dlc']=='passed'
         assert smoke['source_commit']==a.commit
         archive=one(f'MouseLimbLab_{label}_{version}.zip')
-        with zipfile.ZipFile(archive) as z:
+        # macOS ditto writes UTF-8 names without setting the ZIP UTF-8 flag.
+        with zipfile.ZipFile(archive,metadata_encoding='utf-8') as z:
             assert z.testzip() is None
             embedded=json.loads(z.read(f'MouseLimbLab_{label}/BUILD_INFO.json'))
             assert embedded==info
