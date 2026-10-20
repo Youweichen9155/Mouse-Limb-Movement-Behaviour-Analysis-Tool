@@ -189,12 +189,14 @@ def run_clip(spec,output_root,progress=lambda s:None,cancelled=lambda:False):
         write_json(folder/'manifest.json',{'version':__version__,'python':platform.python_version(),'platform':platform.platform(),
                    'engine':engine,'settings':asdict(settings),'inputs':sources,'import':meta,'summary':summary,
                    'ALMA_commit':'47703fc3769064a74c44febe923d8014a0325210','state':'complete'})
+        method_note=('ALMA 踝角：膝–踝–跖趾关节。官方参数表 percentage 列保存 0–1 比例；周期表 ALMA_*_pct 列为百分数。'
+                     if engine=='alma' else '四点踝角：膝–踝–足端。ROM 为每周期角度 P95−P5。')
         report=f'''<!doctype html><html lang="zh"><meta charset="utf-8"><title>MouseLimbLab 分析报告</title>
 <style>body{{font:16px system-ui;max-width:1040px;margin:40px auto;padding:20px;color:#243045}}img{{max-width:100%}}td,th{{padding:6px;border-bottom:1px solid #ddd}}h1{{color:#2458a6}}</style>
 <h1>小鼠后肢运动分析 · {engine.upper()}</h1><p>版本 {__version__} · {html.escape(summary['status'])} · 自动周期 {summary['n_automatic_cycles']}</p>
-<p>自动结果需复核。动物编号与组别仅使用用户填写的信息。帧和周期不作为独立动物 N。</p>
+<p>在“周期与轨迹复核”中选择有效周期，保存后按动物汇总。动物编号与组别来自项目设置。</p>
 <p>时序：{'已填写采集帧率，可报告真实秒数。' if settings.capture_fps else '仅播放时间；真实秒数留空。慢动作视频请填写实际采集帧率。'}</p>
-<p>四点踝角为膝–踝–足端；ALMA 踝角为膝–踝–跖趾，两者不可互换。ALMA 模式调用固定版本的官方完整运动学函数，包括其周期检测和参数提取；不包含论文疾病分类、PCA 或横梯足误踏检测。两种引擎分别分析与保存。官方参数表中标为 percentage (%) 的列实际上为 0–1 比例；cycle_metrics 中 ALMA_*_pct 列为已乘 100 的百分数。</p>
+<p>{method_note}</p>
 {pd.DataFrame([summary]).T.to_html(header=False,escape=True)}<h2>轨迹</h2><img src="trajectories.png"><h2>原始帧与事件</h2><img src="signals.png">
 <p><a href="cycle_metrics.csv">逐周期数据</a> · <a href="frame_tracks.csv">逐帧数据</a> · <a href="normalized_curves.csv">标准化曲线</a> · <a href="manifest.json">参数与来源</a></p></html>'''
         (folder/'report.html').write_text(report,encoding='utf-8')

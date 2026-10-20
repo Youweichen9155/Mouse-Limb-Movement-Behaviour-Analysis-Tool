@@ -53,7 +53,7 @@ def main():
             subprocess.run(['/usr/bin/ditto','--norsrc','--noextattr',str(a.dist.resolve()/'MouseLimbLab.app'),str(folder/'MouseLimbLab.app')],check=True)
         else:
             shutil.copytree(a.dist.resolve()/'MouseLimbLab',folder,dirs_exist_ok=True)
-        for name in ('README.md','LICENSE','THIRD_PARTY_NOTICES.md','install_deeplabcut.py',
+        for name in ('README.md','开始使用.txt','LICENSE','THIRD_PARTY_NOTICES.md','install_deeplabcut.py',
                      'Install_DeepLabCut_Mac.command','Install_DeepLabCut_Windows.bat'):
             shutil.copyfile(ROOT/name,folder/name)
         (folder/'Install_DeepLabCut_Mac.command').chmod(0o755)

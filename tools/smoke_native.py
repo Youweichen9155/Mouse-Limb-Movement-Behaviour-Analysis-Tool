@@ -31,14 +31,16 @@ def main():
     assert manifest['state']=='complete' and manifest['summary']['frame_count']>=20
     for name in ('frame_tracks.csv','cycle_metrics.csv','signals.pdf','signals.png','report.html'):
         assert (manifests[0].parent/name).stat().st_size>0,name
-    screenshot=out/'native_gui.png'
-    run('gui',['gui-smoke','--project',str(out/'demo/demo_input/demo_project.json'),'--screenshot',str(screenshot)])
-    assert screenshot.read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
+    for name,tab in (('gui',0),('help',3),('dlc',2)):
+        screenshot=out/f'native_{name}.png'
+        run(name,['gui-smoke','--project',str(out/'demo/demo_input/demo_project.json'),
+                  '--tab',str(tab),'--screenshot',str(screenshot)])
+        assert screenshot.read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
     signature=None
     if sys.platform=='darwin':
         subprocess.run(['/usr/bin/codesign','--verify','--deep','--strict',str(dist/'MouseLimbLab.app')],check=True)
         signature='ad-hoc signature verified; not notarized'
-    result={'native_analysis':'passed','native_gui':'passed','version':manifest['version'],
+    result={'native_analysis':'passed','native_gui':'passed','native_help':'passed','native_dlc':'passed','version':manifest['version'],
             'platform':platform.platform(),'machine':platform.machine(),'signature':signature,
             'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
             'qt_platform':env['QT_QPA_PLATFORM'],'chinese_font_glyphs':'passed',
