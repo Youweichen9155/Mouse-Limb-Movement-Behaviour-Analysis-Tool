@@ -41,10 +41,11 @@ assert w.protocol.itemData(1)=='suspended'
 import mouselimblab.gui as gui
 gui.video_info=lambda p:dict(video_fps=30,frame_count=180)
 w.show_frame=lambda n:None
-w.coordinates='previous.csv';w.phase_events_path='previous_events.csv'
+w.coordinates='previous.csv';w.phase_events_path='previous_events.csv';w.swing_regions=[[10,20]]
 w.seeds={'hip':[1,2]};w.target='foot'
 w.set_video('next.mp4',reset=True)
 assert w.coordinates==w.phase_events_path==''
+assert w.swing_regions is None
 assert w.seeds=={} and w.target is None and w.result is None
 class Busy:
     def isRunning(self):return True

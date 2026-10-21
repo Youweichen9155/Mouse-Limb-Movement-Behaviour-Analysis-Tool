@@ -65,7 +65,7 @@ class Window(QMainWindow):
     def __init__(self):
         super().__init__();self.setWindowTitle(f'MouseLimbLab {__version__} · 小鼠后肢运动分析');self.resize(1250,880)
         self.video='';self.coordinates='';self.seeds={};self.target=None;self.frame_index=0
-        self.result=None;self.tracks=None;self.review=None;self.edits=[];self.worker=None
+        self.result=None;self.tracks=None;self.review=None;self.edits=[];self.worker=None;self.swing_regions=None
         self.tabs=QTabWidget();self.setCentralWidget(self.tabs)
         page=QWidget();layout=QHBoxLayout(page);self.tabs.addTab(page,'1  数据与分析')
         formwidget=QWidget();form=QFormLayout(formwidget);scroll=QScrollArea();scroll.setWidgetResizable(True);scroll.setWidget(formwidget);scroll.setMinimumWidth(370)
@@ -120,6 +120,7 @@ class Window(QMainWindow):
         for label,fn in [('打开已有结果…',self.open_result),('保存周期复核',self.save_review),('打开结果文件夹',self.open_result_folder),('打开分析报告',self.open_report),('按动物汇总…',self.aggregate)]:toolbar.addWidget(self.button(label,fn))
         tip=QLabel('纳入：1＝纳入，0＝排除，空白＝未复核。双击周期编号查看原视频。四点方法可修改起始、摆动开始、结束帧，再点击“应用相位修正并重分析”。');tip.setWordWrap(True);rv.addWidget(tip)
         phasebar=QHBoxLayout();rv.addLayout(phasebar)
+        self.region_button=self.button('手动框选摆动区域…',self.edit_swing_regions);phasebar.addWidget(self.region_button)
         phasebar.addWidget(self.button('查看速度与相位图',lambda:self.open_plot('phase_velocity.png')))
         phasebar.addWidget(self.button('查看连续姿态图',lambda:self.open_plot('limb_sequence.png')))
         self.phase_apply=self.button('应用相位修正并重分析',self.save_phases);phasebar.addWidget(self.phase_apply)
@@ -132,7 +133,7 @@ class Window(QMainWindow):
 <p><b>ALMA 六点分析</b>：导入髂嵴、髋、膝、踝、跖趾关节（MTP）、趾尖六点 CSV，选择跑台或自发行走。填写实际采集帧率；跑台填写跑带速度，自发行走填写 px/cm。</p>
 <p><b>DeepLabCut</b>：第 3 页支持抽帧、六点标注、训练、评估和预测。安装随包提供的训练环境，用自己的视频标注训练模型，再将预测送入所选分析方法。</p>
 <p><b>查看结果</b>：检查叠加轨迹，按需校正坐标并重分析。在“周期与轨迹复核”中填 1 纳入、0 排除，保存后按动物汇总。每次分析生成新的结果文件夹。</p>
-<p><b>姿态与相位</b>：自动导出连续姿态图和足端速度曲线。红色为摆动相，黑色为支撑相，灰色为未分类。四点方法默认按足端相对髋部的速度换向识别，可在复核表修改边界后重分析。悬空运动显示前伸/后撤。</p>
+<p><b>姿态与相位</b>：整段视频输出一幅连续姿态图。点击“手动框选摆动区域…”，根据速率曲线拖动选择一个或多个区间，可修改起止帧、删除或清空。保存后完全按你的选区着色：红色为摆动相，其余有效帧黑色；缺失坐标为灰色。起止帧均包含在选区内。悬空运动显示前伸/后撤。</p>
 <p>分析完成后窗口保持打开。点击“打开视频…”，选择新视频并重新标记，即可继续分析。</p>
 <h3>录制参数</h3>
 <p>使用固定机位、正立侧视、固定帧率的视频。播放帧率由视频读取，实际采集帧率按录制设置填写。例如 240 fps 慢动作以 30 fps 导出：播放填 30，采集填 240。</p>
@@ -170,7 +171,7 @@ class Window(QMainWindow):
         self.mode_note.setText('导入六点 CSV；跑台填写速度，自发行走填写标尺。' if alma else '首帧选择四个颜料标记，或导入四点 CSV。')
         for b in self.seed_buttons:b.setEnabled(not alma)
         for w in (self.cutoff,self.drag,self.drag_frames,self.max_height,self.max_stride):w.setEnabled(alma)
-        self.phase_method.setEnabled(not alma);self.phase_apply.setEnabled(not alma)
+        self.phase_method.setEnabled(not alma);self.phase_apply.setEnabled(not alma);self.region_button.setEnabled(not alma)
         self.ground.setEnabled(not alma);self.ground_set.setEnabled(not alma)
     def set_target(self,target):self.target=target;self.hint.setText('请在画面中点击：'+target)
     def select_seed(self,j):
@@ -194,14 +195,14 @@ class Window(QMainWindow):
         if reset:
             self.seeds={};self.tracks=None;self.canvas.points={};self.canvas.ground=None;self.ground_set.setChecked(False);self.edits=[]
             self.correction_path='';self.result=None;self.review=None
-            self.phase_events_path='';self.target=None;self.clear_csv();self.table.setRowCount(0)
+            self.phase_events_path='';self.swing_regions=None;self.target=None;self.clear_csv();self.table.setRowCount(0)
         self.slider.setValue(0);self.show_frame(0)
     def open_csv(self):
         p,_=QFileDialog.getOpenFileName(self,'选择逐帧或 DLC CSV','','CSV (*.csv)')
         if p:
             self.coordinates=p;self.csv_label.setText(Path(p).name);self.csv_label.setToolTip(p)
             self.correction_path='';self.result=None;self.review=None;self.tracks=None;self.edits=[]
-            self.phase_events_path=''
+            self.phase_events_path='';self.swing_regions=None
     def clear_csv(self):self.coordinates='';self.csv_label.setText('未选择 CSV：使用四色标记追踪')
     def show_frame(self,n):
         self.frame_index=n;self.frame_label.setText(f'源帧 {n}')
@@ -224,6 +225,7 @@ class Window(QMainWindow):
               'trial_id':self.trial.text().strip(),'overlay':self.overlay.isChecked()}
         if getattr(self,'correction_path',''):spec['corrections']=self.correction_path
         if getattr(self,'phase_events_path','') and spec['engine']=='local':spec['phase_events']=self.phase_events_path
+        if self.swing_regions is not None and spec['engine']=='local':spec['swing_regions']=self.swing_regions
         return spec
     def save_project(self):
         p,_=QFileDialog.getSaveFileName(self,'保存配置','limb_project.json','JSON (*.json)')
@@ -249,6 +251,7 @@ class Window(QMainWindow):
         for w,key in [(self.animal,'animal_id'),(self.group,'group'),(self.trial,'trial_id')]:w.setText(spec.get(key,''))
         self.correction_path=spec.get('corrections','');self.edits=[];self.canvas.update()
         self.phase_events_path=spec.get('phase_events','')
+        self.swing_regions=spec.get('swing_regions')
         self.phase_method.setCurrentIndex(self.phase_method.findData(s.phase_method))
     def start(self):
         if self.worker and self.worker.isRunning():return self.error('当前分析尚未完成，请等待完成或取消后再开始。')
@@ -317,8 +320,26 @@ class Window(QMainWindow):
             manual_events(events,self.tracks.index.to_numpy(),valid)
             path=self.result/('manual_phase_events_'+uuid.uuid4().hex[:8]+'.csv')
             events.to_csv(path,index=False)
-            self.phase_events_path=str(path);self.coordinates=str(self.result/'raw_tracks.csv')
+            self.phase_events_path=str(path);self.swing_regions=None;self.coordinates=str(self.result/'raw_tracks.csv')
             self.csv_label.setText('已加载轨迹与相位修正');self.tabs.setCurrentIndex(0);self.start()
+        except Exception as e:self.error(e)
+    def edit_swing_regions(self):
+        if self.worker and self.worker.isRunning():return self.error('当前分析尚未完成，请等待完成后再划定摆动区域。')
+        if self.result is None or self.tracks is None:return self.error('先完成分析或打开已有结果。')
+        if self.engine.currentData()!='local':return self.error('手动摆动区域用于四点方法。')
+        if 'foot_speed_px_per_frame' not in self.tracks:return self.error('这份旧结果尚无速率曲线，请先重新分析。')
+        from .phase_editor import SwingRegionDialog
+        from PySide6.QtWidgets import QDialog
+        self.phase_editor=SwingRegionDialog(self.tracks.reset_index(),self.swing_regions,self)
+        if self.phase_editor.exec()==QDialog.Accepted:
+            self.apply_swing_regions(self.phase_editor.regions)
+    def apply_swing_regions(self,regions):
+        if self.worker and self.worker.isRunning():return self.error('当前分析尚未完成，请等待完成后再应用摆动区域。')
+        try:
+            from .phases import normalize_swing_regions
+            self.swing_regions=normalize_swing_regions(regions,self.tracks.index)
+            self.phase_events_path='';self.coordinates=str(self.result/'raw_tracks.csv')
+            self.csv_label.setText('已加载轨迹与手动摆动区域');self.tabs.setCurrentIndex(0);self.start()
         except Exception as e:self.error(e)
     def open_plot(self,name):
         if self.result and (self.result/name).exists():QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.result/name)))

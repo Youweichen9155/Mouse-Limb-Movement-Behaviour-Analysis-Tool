@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.5 — 2026-10-21
+
+- Draw the complete clip in a single continuous limb sequence with all valid frames.
+- Select swing regions by dragging on the speed curve; adjust, delete, or clear inclusive frame intervals.
+- Save manual intervals with the project and export CSV. Manual colours replace all automatic phases, and local cycle metrics are recomputed.
+- Native GUI checks exercise mouse selection, saving, reloading and a second analysis without closing the window.
+
 ## 1.1.4
 
 - Add velocity-based phase detection, red/black limb sequences and velocity plots.

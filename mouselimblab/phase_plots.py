@@ -71,33 +71,29 @@ def plot_phases(work, cycles, settings, folder, engine='local'):
     finite = points[np.isfinite(points).all(axis=(1, 2))]
     spans = np.ptp(finite[:, :, 0], axis=1) if len(finite) else [1.]
     width = max(1., float(np.median(spans)))
-    chunks = np.array_split(np.arange(len(work)), min(4, max(1, int(np.ceil(len(work) / 100)))))
-    fig, axes = plt.subplots(len(chunks), 1, figsize=(8, 1.8 * len(chunks) + .5),
-                             squeeze=False, layout='constrained')
-    source_rows = []
-    for row_number, (ax, indices) in enumerate(zip(axes[:, 0], chunks), 1):
-        stride = max(1, int(np.ceil(len(indices) / 250)))
-        selected = indices[::stride]
-        selected = np.unique(np.r_[selected, indices[-1]])
-        segments, line_colours = [], []
-        start, end = frames[indices[0]], frames[indices[-1]]
-        for i in selected:
-            if not np.isfinite(points[i]).all():
-                continue
-            offset = (frames[i] - start) / max(1, end - start) * width * 4
-            pose = points[i].copy()
-            pose[:, 0] += offset
-            segments.append(pose)
-            line_colours.append(colours[i])
-            for joint, (x, y) in zip(joints, pose):
-                source_rows.append({'row': row_number, 'source_frame': frames[i], 'joint': joint,
-                                    'phase': phase[i], 'display_x_px': x, 'display_y_px': y,
-                                    'time_offset_px': offset, 'frame_stride': stride})
-        ax.add_collection(LineCollection(segments, colors=line_colours, linewidths=.35))
-        ax.autoscale()
-        ax.set_aspect('equal', adjustable='datalim')
-        ax.set_axis_off()
-        ax.set_title(f'Frames {start}–{end}', loc='left', fontsize=8, color='#657080')
+    # One continuous timeline, including every valid pose. No row splitting or
+    # automatic subsampling: manual one-frame regions must remain visible.
+    fig, ax = plt.subplots(figsize=(16, 3.2), layout='constrained')
+    source_rows, segments, line_colours = [], [], []
+    start, end = frames[0], frames[-1]
+    timeline_width = width * max(8., len(work) / 60.)
+    for i in range(len(work)):
+        if not np.isfinite(points[i]).all():
+            continue
+        offset = (frames[i] - start) / max(1, end - start) * timeline_width
+        pose = points[i].copy()
+        pose[:, 0] += offset
+        segments.append(pose)
+        line_colours.append(colours[i])
+        for joint, (x, y) in zip(joints, pose):
+            source_rows.append({'row': 1, 'source_frame': frames[i], 'joint': joint,
+                                'phase': phase[i], 'display_x_px': x, 'display_y_px': y,
+                                'time_offset_px': offset, 'frame_stride': 1})
+    ax.add_collection(LineCollection(segments, colors=line_colours, linewidths=.3))
+    ax.autoscale()
+    ax.set_aspect('equal', adjustable='datalim')
+    ax.set_axis_off()
+    ax.set_title(f'Frames {start}–{end}', loc='left', fontsize=8, color='#657080')
     fig.legend(handles=phase_legend(settings), frameon=False, ncol=3, loc='outside upper center')
     save(fig, folder, 'limb_sequence')
     pd.DataFrame(source_rows, columns=['row', 'source_frame', 'joint', 'phase', 'display_x_px',

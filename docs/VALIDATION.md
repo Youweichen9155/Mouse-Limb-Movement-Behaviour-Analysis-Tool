@@ -1,5 +1,14 @@
 # Validation record
 
+## v1.1.5 manual swing regions (2026-10-21)
+
+42 regression tests include inclusive interval boundaries, merging, empty
+selections, complete replacement of automatic phases, missing-data handling,
+and full-frame single-row pose exports. GUI checks drag on the actual speed
+canvas, edit an interval in the table, save through the dialog and rerun in the
+same window. Exported phases are compared exactly with the selected intervals;
+project persistence and plot source rows are checked. ALMA events are unchanged.
+
 ## v1.1.4 velocity phases and continuous use (2026-10-20)
 
 The phase fixtures check known 65% stance timing, mirrored recordings, body

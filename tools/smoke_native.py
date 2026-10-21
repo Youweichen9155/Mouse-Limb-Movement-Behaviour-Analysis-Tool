@@ -65,7 +65,7 @@ def main():
         subprocess.run(['/usr/bin/codesign','--verify','--deep','--strict',str(dist/'MouseLimbLab.app')],check=True)
         signature='ad-hoc signature verified; not notarized'
     result={'native_analysis':'passed','native_gui':'passed','native_gui_analysis':'passed','overlay_decoded_frames':decoded,
-            'consecutive_gui_analyses':2,'phase_exports':'passed',
+            'consecutive_gui_analyses':2,'phase_exports':'passed','manual_region_editor':'passed','whole_clip_sequence':'passed',
             'native_help':'passed','native_dlc':'passed','version':manifest['version'],
             'platform':platform.platform(),'machine':platform.machine(),'signature':signature,
             'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
