@@ -6,7 +6,7 @@ from scipy.ndimage import median_filter
 from scipy.signal import savgol_filter
 from .tracking import (JOINTS, interpolate_short_gaps, angle_deg, robust_cv,
                        robust_scale, find_candidate_cycles)
-from .phases import velocity_cycles, manual_events, add_phase_columns
+from .phases import velocity_cycles, manual_events, add_phase_columns, normalize_swing_regions, region_cycles
 
 @dataclass
 class Settings:
@@ -85,7 +85,7 @@ CYCLE_COLUMNS = ['cycle_id', 'source_frame_start', 'source_frame_transition', 's
     'cycle_duration_video_s', 'cycle_duration_real_s', 'duty_factor', 'stance_swing_ratio',
     'peak_clearance_pct_shank', 'swing_drag_pct']
 
-def analyse(table, settings, phase_events=None):
+def analyse(table, settings, phase_events=None, swing_regions=None):
     settings.validate()
     if len(table) < 20:
         raise ValueError('至少需要 20 帧才能进行周期分析。')
@@ -161,6 +161,9 @@ def analyse(table, settings, phase_events=None):
         events.extend((a+s, a+t, a+e) for s,t,e in local)
     if phase_events is not None:
         events = manual_events(phase_events, frames, valid)
+    if swing_regions is not None:
+        swing_regions = normalize_swing_regions(swing_regions, frames)
+        events = region_cycles(swing_regions, frames, valid)
     # Ground baseline comes only from candidates with sufficient raw coverage.
     stance = []
     for s, t, e in events:
@@ -232,10 +235,14 @@ def analyse(table, settings, phase_events=None):
                'drag_threshold_pct_shank':threshold/shank*100,
                'timing':'capture_fps_confirmed' if settings.capture_fps else 'video_time_only',
                'directions_per_valid_segment':','.join(map(str,signs)),
-               'phase_method':'manual' if phase_events is not None else settings.phase_method,
+               'phase_method':'manual_regions' if swing_regions is not None else 'manual' if phase_events is not None else settings.phase_method,
                'engine':'local'}
+    if swing_regions is not None:
+        summary['n_manual_swing_regions']=len(swing_regions)
+        if n == 0 and raw_valid.mean() >= .75:
+            summary['status']='NO_COMPLETE_MANUAL_CYCLES'
     accepted = cycle_table.loc[cycle_table.automatic_include.astype(bool)]
     for col in ('knee_rom_p95_p5_deg','ankle_rom_p95_p5_deg','duty_factor','stance_swing_ratio','peak_clearance_pct_shank','swing_drag_pct'):
         summary[col+'_mean'] = pd.to_numeric(accepted[col],errors='coerce').mean()
-    work = add_phase_columns(work, cycle_table, settings, summary['phase_method'])
+    work = add_phase_columns(work, cycle_table, settings, summary['phase_method'], swing_regions)
     return work, cycle_table, curve_table, summary

@@ -56,6 +56,7 @@ def main():
         assert smoke['native_help']==smoke['native_dlc']=='passed'
         assert smoke['native_gui_analysis']=='passed' and smoke['overlay_decoded_frames']==180
         assert smoke['consecutive_gui_analyses']==2 and smoke['phase_exports']=='passed'
+        assert smoke['manual_region_editor']==smoke['whole_clip_sequence']=='passed'
         assert smoke['source_commit']==a.commit
         archive=one(f'MouseLimbLab_{label}_{version}.zip')
         # macOS ditto writes UTF-8 names without setting the ZIP UTF-8 flag.

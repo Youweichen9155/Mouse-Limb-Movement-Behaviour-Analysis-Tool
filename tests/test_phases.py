@@ -99,3 +99,42 @@ def test_suspended_phase_names_and_legacy_option():
     assert not set(work.phase) & {'stance', 'swing'}
     _, cycles, _, summary = analyse(demo_table(), Settings(ground_y_px=220, phase_method='position'))
     assert len(cycles) > 2 and summary['phase_method'] == 'position'
+
+
+def test_manual_regions_replace_all_automatic_phases_and_allow_empty_selection(tmp_path):
+    from mouselimblab.phases import normalize_swing_regions
+    data=demo_table(); settings=Settings(ground_y_px=220,capture_fps=30)
+    regions=[[39,59],[99,119],[len(data)-5,len(data)-1]]
+    work,cycles,_,summary=analyse(data,settings,swing_regions=regions)
+    expected=np.zeros(len(data),bool)
+    for a,b in regions: expected[a:b+1]=True
+    np.testing.assert_array_equal(work.phase.eq('swing'),expected)
+    assert work.phase_source.eq('manual_regions').all()
+    assert summary['phase_method']=='manual_regions'
+    assert cycles.iloc[0].source_frame_start==60 and cycles.iloc[0].source_frame_transition==99
+    assert cycles.iloc[0].source_frame_end==120
+    assert cycles.iloc[0].swing_duration_real_s==21/30
+    empty,empty_cycles,_,_=analyse(data,settings,swing_regions=[])
+    assert empty.phase.eq('stance').all() and empty_cycles.empty
+    assert normalize_swing_regions([[15,20],[4,8],[8,16]],data.source_frame)==[[4,20]]
+    for bad in ([[1.5,2]], [[0,len(data)]], [[8,2]], [[float('nan'),4]]):
+        with pytest.raises(ValueError):normalize_swing_regions(bad,data.source_frame)
+    tracks=tmp_path/'tracks.csv';data.to_csv(tracks,index=False)
+    folder=run_clip({'coordinates':str(tracks),'swing_regions':regions,
+                     'settings':{'ground_y_px':220,'capture_fps':30}},tmp_path/'out')
+    exported=pd.read_csv(folder/'phase_frames.csv')
+    np.testing.assert_array_equal(exported.phase.eq('swing'),expected)
+    assert pd.read_csv(folder/'swing_regions.csv').values.tolist()==regions
+    poses=pd.read_csv(folder/'limb_sequence_points.csv')
+    assert poses.row.nunique()==1 and poses.frame_stride.eq(1).all()
+    assert poses.source_frame.nunique()==len(data)
+    assert poses.groupby('source_frame').phase.first().equals(exported.set_index('source_frame').phase)
+
+
+def test_manual_region_crossing_missing_data_does_not_invent_a_complete_cycle():
+    data=demo_table();data.loc[70:80,['foot_x_px','foot_y_px']]=np.nan
+    work,cycles,_,_=analyse(data,Settings(ground_y_px=220),swing_regions=[[39,59],[75,119]])
+    assert work.loc[70:80,'phase'].eq('unclassified').all()
+    assert cycles.empty
+    assert work.loc[82:119,'phase'].eq('swing').all()
+    assert work.loc[120:,'phase'].eq('stance').all()

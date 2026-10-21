@@ -3,7 +3,7 @@
 Desktop software for mouse hindlimb tracking and kinematics, by **Youwei Chen**.
 Track paint markers, switch between four-point and ALMA six-point analysis, review tracks and cycles, and export animal-level summaries. DeepLabCut annotation and training are available in the same interface.
 
-**[Download v1.1.4](https://github.com/Youweichen9155/Mouse-Limb-Movement-Behaviour-Analysis-Tool/releases/tag/v1.1.4)** · [中文使用说明](docs/USER_GUIDE_ZH.md) · [DeepLabCut 训练](docs/DEEPLABCUT_ZH.md) · [Test record](docs/VALIDATION.md)
+**[Download v1.1.5](https://github.com/Youweichen9155/Mouse-Limb-Movement-Behaviour-Analysis-Tool/releases/tag/v1.1.5)** · [中文使用说明](docs/USER_GUIDE_ZH.md) · [DeepLabCut 训练](docs/DEEPLABCUT_ZH.md) · [Test record](docs/VALIDATION.md)
 
 ## Download and start / 下载与启动
 
@@ -11,9 +11,9 @@ Download the corresponding ZIP and extract it completely. Desktop packages inclu
 
 | Computer | Download | Start |
 |---|---|---|
-| Apple Silicon Mac (M series), macOS 14+ | `MouseLimbLab_Mac_arm64_1.1.4.zip` | Open `MouseLimbLab.app` |
-| Windows x64 | `MouseLimbLab_Windows_x64_1.1.4.zip` | Open `MouseLimbLab.exe` |
-| Source / Intel Mac | `MouseLimbLab_Source_1.1.4.zip` | Python 3.12; see below |
+| Apple Silicon Mac (M series), macOS 14+ | `MouseLimbLab_Mac_arm64_1.1.5.zip` | Open `MouseLimbLab.app` |
+| Windows x64 | `MouseLimbLab_Windows_x64_1.1.5.zip` | Open `MouseLimbLab.exe` |
+| Source / Intel Mac | `MouseLimbLab_Source_1.1.5.zip` | Python 3.12; see below |
 
 On Windows, keep the EXE and `_internal` folder together. If macOS prompts on first launch, allow the application in **System Settings → Privacy & Security**. Checksums are included on the release page.
 
@@ -43,11 +43,13 @@ Outputs include framewise CSV, cycle tables, PNG/PDF figures, an HTML report and
 
 ## Limb sequences and gait phases
 
-Analysis exports a red/black stick sequence (swing/stance), signed forward velocity
-and speed curves, and framewise phase/event tables. The four-point method detects
-sustained foot velocity reversals relative to the hip. Edit event frames in the
-review table and apply them to generate a new result folder. ALMA retains its
-official events. The window stays open after every analysis.
+The entire video is drawn as one continuous limb sequence, including every valid
+pose. In **周期与轨迹复核 → 手动框选摆动区域…**, drag across the speed curve to select
+one or more swing regions. Edit the inclusive frame bounds, delete intervals,
+or clear the selection. Saving replaces all automatic colouring with the manual
+selection: red swing, black stance, grey missing data. Regions are saved with
+the project and exported as CSV; local cycle metrics are recomputed between
+successive touchdowns. ALMA retains its official events. The window stays open.
 
 ## DeepLabCut training
 
@@ -57,9 +59,9 @@ Install the separate training environment with `Install_DeepLabCut_Mac.command` 
 
 ## Testing
 
-The suite contains **40 automated tests**, plus native startup, synthetic analysis/export and Chinese GUI checks on Mac ARM64 and Windows x64. Local Mac testing also processed **8 paint-marked recordings containing 7,809 source frames**.
+The suite contains **42 automated tests**, plus native startup, synthetic analysis/export and Chinese GUI checks on Mac ARM64 and Windows x64. Local Mac testing also processed **8 paint-marked recordings containing 7,809 source frames**.
 
-The [test record](docs/VALIDATION.md) documents the sampled track review, cycle selection, DLC checks and tested environments. Version 1.1.4 adds phase-coloured limb sequences, velocity curves and editable phase boundaries. Native checks run two consecutive analyses in the same window and decode the overlay video.
+The [test record](docs/VALIDATION.md) documents the sampled track review, cycle selection, DLC checks and tested environments. Version 1.1.5 adds graphical manual swing selection and whole-video limb sequences. Native checks drag on the speed curve, save and reload the selected intervals, run two consecutive analyses in the same window and decode the overlay video.
 
 ## Run from source
 

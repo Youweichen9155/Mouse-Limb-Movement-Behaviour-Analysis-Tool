@@ -18,6 +18,43 @@ def derivative(values):
     return result
 
 
+def normalize_swing_regions(regions, frames):
+    """Inclusive source-frame intervals; None and an empty list differ."""
+    frames = np.asarray(frames, int)
+    if not len(frames):
+        raise ValueError('没有可划定的帧。')
+    if len(regions) == 0:
+        return []
+    try:
+        values = np.asarray(regions, float)
+    except (TypeError, ValueError):
+        raise ValueError('摆动区间需要整数起止帧。') from None
+    if values.ndim != 2 or values.shape[1] != 2 or not np.isfinite(values).all() or not (values == np.floor(values)).all():
+        raise ValueError('摆动区间需要整数起止帧。')
+    merged = []
+    for a, b in sorted(values.astype(int).tolist()):
+        if a > b or a < frames[0] or b > frames[-1]:
+            raise ValueError('摆动区间起始帧不能大于结束帧，且需在视频范围内。')
+        if merged and a <= merged[-1][1] + 1:
+            merged[-1][1] = max(b, merged[-1][1])
+        else:
+            merged.append([a, b])
+    return merged
+
+
+def region_cycles(regions, frames, valid):
+    """Complete touchdown-to-touchdown cycles between consecutive swings."""
+    lookup = {int(f): i for i, f in enumerate(frames)}
+    events = []
+    for previous, current in zip(regions[:-1], regions[1:]):
+        bounds = previous[1] + 1, current[0], current[1] + 1
+        if all(f in lookup for f in bounds):
+            s, t, e = (lookup[f] for f in bounds)
+            if s < t < e and valid[s:e + 1].all():
+                events.append((s, t, e))
+    return events
+
+
 def velocity_cycles(x, fps, clearance=None, direction='auto'):
     """Touchdown -> toe-off -> touchdown from sustained velocity reversals.
 
@@ -98,7 +135,7 @@ def manual_events(table, frames, valid):
     return result
 
 
-def add_phase_columns(work, cycles, settings, source):
+def add_phase_columns(work, cycles, settings, source, swing_regions=None):
     """Shared display/export layer; ALMA keeps its own event definitions."""
     work = work.copy()
     frames = work.source_frame.to_numpy()
@@ -123,6 +160,12 @@ def add_phase_columns(work, cycles, settings, source):
         accepted[a | b] = bool(row.automatic_include)
     valid = np.isfinite(work[[f'{j}_{a}_px_smooth' for j in ('hip', 'knee', 'ankle', 'foot')
                              for a in ('x', 'y')]]).all(axis=1)
+    if swing_regions is not None:
+        # A manual selection replaces every automatic colour, including partial
+        # cycles. Empty selection deliberately means no swing anywhere.
+        phase[:] = stance
+        for a, b in normalize_swing_regions(swing_regions, frames):
+            phase[(frames >= a) & (frames <= b)] = swing
     phase[~valid] = 'unclassified'
     if 'swing_direction_sign' in work:
         sign = work.swing_direction_sign.to_numpy(float)
